@@ -159,7 +159,7 @@
 ;; Maintain byte seq with just the actual numbers and transform it to
 ;; a byte array before passing to write-bytes
 (def bxs (list 0xaa 0xbb 0xcc 0xdd))
-(write-bytes "binfile.test" (->bytes bxs))
+(write-bytes "test/lt64-asm/binfile.test" (->bytes bxs))
  
 
 
