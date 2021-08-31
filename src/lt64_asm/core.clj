@@ -26,15 +26,6 @@
       (rest inst)
       nil)))
 
-(def program
-  "Program start with a jump over the static data. At the start we don't know
-  know where that is, so we will reserve 2 words for the address for now. The
-  addres will default to jumping to the end of memory which will cause a
-  program out of bound error."
-  [(key->op :jump-im)
-   (0xff)
-   (0xff)]
-
 (defn first-pass
   [prog]
   {:labels {}
