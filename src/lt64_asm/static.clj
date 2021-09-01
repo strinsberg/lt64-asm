@@ -85,7 +85,6 @@
 
 (defn alloc
   [inst prog-data]
-  (prn inst prog-data)
   (let [{:keys [counter bytes labels]} prog-data
         kind (first inst)
         name_ (keyword (second inst))
@@ -97,12 +96,14 @@
   
 (defn process-static
   [static]
-  ;; throw if it is not the static section?
-  (reduce #(alloc %2 %1)
-          {:counter (count sym/initial-bytes)
-           :bytes '()
-           :labels {}}
-          (rest static)))
+  (let [prog-data
+        (reduce #(alloc %2 %1)
+                {:counter (count sym/initial-bytes)
+                 :bytes '()
+                 :labels {}}
+                static)]
+    (assoc prog-data
+           :prog-start (:counter prog-data))))
 
 (comment
 
@@ -145,6 +146,6 @@
                (:char world 6 "world")
                (:word-d addresses 5 0xaabb 0xccdd)))
 
-(process-static static)
+(process-static (rest static))
 
 ),

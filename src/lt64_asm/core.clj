@@ -1,5 +1,7 @@
 (ns lt64-asm.core
   (:require [lt64-asm.symbols :as sym]
+            [lt64-asm.static :as stat]
+            [lt64-asm.instruct :as instr]
             [clojure.edn :as edn]
             [clojure.java.io :as jio])
   (:gen-class))
@@ -26,10 +28,24 @@
       (rest inst)
       nil)))
 
-(defn first-pass
+(defn concat-bytes
+  [prog-data]
+  (concat
+    (:program prog-data)
+    (:bytes prog-data)
+    (concat (stat/num->bytes (:prog-start prog-data) 2)
+          (drop 2 sym/initial-bytes))))
+
+(defn assemble
   [prog]
-  {:labels {}
-   :program []})
+  (->> prog
+       get-static
+       stat/process-static
+       (instr/expand-all (get-instruct prog))
+       instr/replace-all
+       concat-bytes
+       reverse))
+
 
 (defn second-pass
   [keys [labels program]]
@@ -47,8 +63,8 @@
 (get-instruct test-prog)
 (get-instruct [])
 
-;; need to test returns from these functions to make sure they are
-;; sequences and they give useful feedback or errors
+(sym/write-bytes "test/lt64_asm/binfile.test"
+             (sym/->bytes (assemble test-prog)))
 
 ;; read the file
 ;; get the two sections
@@ -58,11 +74,6 @@
 ;;   return a seq of bytes
 ;; write bytes to a file
 
-;; will need functions for converting integers given into byte arrays.
-;; same for strings.
-;; these will be based on what kind of number the op is expecting.
-;; should maybe also check and issue a warning if the given number is
-;; large enough to overflow, which might be a little tricky given the
-;; way bytes etc. are always signed.
+
 
 ),
