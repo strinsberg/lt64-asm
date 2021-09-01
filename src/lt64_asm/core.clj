@@ -33,6 +33,7 @@
   (concat
     (:program prog-data)
     (:bytes prog-data)
+    ;; this should probably be a function in sym incase the initial bytes change
     (concat (stat/num->bytes (:prog-start prog-data) 2)
           (drop 2 sym/initial-bytes))))
 
@@ -45,11 +46,6 @@
        instr/replace-all
        concat-bytes
        reverse))
-
-
-(defn second-pass
-  [keys [labels program]]
-  (sym/->bytes 0x00))
 
 (defn -main
   "I don't do a whole lot ... yet."
@@ -64,7 +60,12 @@
 (get-instruct [])
 
 (sym/write-bytes "test/lt64_asm/binfile.test"
-             (sym/->bytes (assemble test-prog)))
+                 (sym/->bytes (assemble test-prog)))
+
+
+(def test-max (get-program "test/lt64_asm/max.lta"))
+(sym/write-bytes "test/lt64_asm/binfile.test"
+                 (sym/->bytes (assemble test-max)))
 
 ;; read the file
 ;; get the two sections
@@ -73,7 +74,5 @@
 ;; second pass convert all instructions to bytes and fill in addresses etc.
 ;;   return a seq of bytes
 ;; write bytes to a file
-
-
 
 ),

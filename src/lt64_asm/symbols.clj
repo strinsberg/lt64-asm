@@ -2,6 +2,8 @@
   (:require [clojure.java.io :as jio]))
 
 ;; Symbols and op codes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def CR 0x0A)
+
 (def symbol-map
   {:halt        0x00
 

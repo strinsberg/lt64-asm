@@ -66,14 +66,14 @@
       :word {:bytes (adjust size len (reverse args))
              :count size}
       :word-d {:bytes (adjust (* 2 size) (* 2 len) (words->bytes args 2))
-               :count size}
+               :count (* size 2)}
       :word-q {:bytes (adjust (* 4 size) (* 4 len) (words->bytes args 4))
-               :count size}
+               :count (* size 4)}
       :word-f {:bytes
                (adjust (* 4 size) (* 4 len) (words->bytes
                                              (map #(int (* 1000 %)) args)
                                              4))
-               :count size}
+               :count (* size 4)}
       (list 0x00))))  ;; invalid kind throw?
 
 (defn get-static-data
