@@ -1,45 +1,22 @@
 (ns lt64-asm.files
-  (:require [clojure.edn :as edn]))
-
-;; program predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn lt64-prog?
-  [file]
-  (= (first file) 'lt64-asm-prog))
-
-(defn lt64-mod?
-  [file]
-  (= (first file) 'lt64-asm-mod))
-
-(defn static?
-  [instr]
-  (= (first instr) 'static))
-
-(defn main?
-  [instr]
-  (= (first instr) 'main))
-
-(defn include?
-  [instr]
-  (= (first instr) 'include))
-
-(defn proc?
-  [instr]
-  (= (first instr) 'proc))
+  (:require 
+    [lt64-asm.symbols :as sym]
+    [clojure.edn :as edn]))
 
 ;; file type identifiers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-program
   [file]
-  (if (and (lt64-prog? file)
-           (static? (second file))
-           (main? (nth file 2)))
+  (if (and (sym/lt64-prog? file)
+           (sym/static? (second file))
+           (sym/main? (nth file 2)))
     (rest file)
     (throw
       (Exception. "Error: Not a valid lt64-asm file"))))
 
 (defn lt64-module
   [file]
-  (if (and (lt64-mod? file)
-           (every? #(or (proc? %) (include? %))
+  (if (and (sym/lt64-mod? file)
+           (every? #(or (sym/proc? %) (sym/include? %))
                    (rest file)))
     (rest file)
     (throw
@@ -60,7 +37,7 @@
 (defn expand
   [procs-and-includes]
   (try
-    (mapcat #(if (include? %)
+    (mapcat #(if (sym/include? %)
                (trampoline include %)
                (list %))
             procs-and-includes)

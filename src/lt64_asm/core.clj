@@ -1,6 +1,8 @@
 (ns lt64-asm.core
   (:require [lt64-asm.symbols :as sym]
             [lt64-asm.static :as stat]
+            [lt64-asm.bytes :as b]
+            [lt64-asm.program :as prog]
             [lt64-asm.instruct :as instr]
             [clojure.edn :as edn]
             [clojure.java.io :as jio])
@@ -59,13 +61,13 @@
 (get-instruct test-prog)
 (get-instruct [])
 
-(sym/write-bytes "test/lt64_asm/binfile.test"
-                 (sym/->bytes (assemble test-prog)))
+(b/write-bytes "test/lt64_asm/binfile.test"
+                 (b/->bytes (assemble test-prog)))
 
 
 (def test-max (get-program "test/lt64_asm/max.lta"))
-(sym/write-bytes "test/lt64_asm/binfile.test"
-                 (sym/->bytes (assemble test-max)))
+(b/write-bytes "test/lt64_asm/binfile.test"
+                 (b/->bytes (assemble test-max)))
 
 ;; read the file
 ;; get the two sections

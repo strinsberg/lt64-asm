@@ -1,18 +1,11 @@
 (ns lt64-asm.program
   (:require [lt64-asm.symbols :as sym]
+            [lt64-asm.files :as files]
             [clojure.edn :as edn]))
 
-(defn label?
-  [op]
-  (= :label op))
-
-(defn proc?
-  [proc]
-  (= (first proc) 'proc))
-
-(defn get-label
+(defn get-label-from-ops
   [{:keys [ops counter labels]}]
-  (if (label? (first ops))
+  (if (sym/label? (first ops))
     {:ops (drop 2 ops)
      :labels (sym/set-label (second ops) counter labels)
      :counter counter}
@@ -29,11 +22,11 @@
       (assoc program-data
              :labels (:labels args)
              :counter (:counter args))
-      (recur (get-label args)))))
+      (recur (get-label-from-ops args)))))
 
 (defn proc-label-accumulator
   [program-data proc]
-   (if (proc? proc)
+   (if (sym/proc? proc)
      (get-op-labels
        (drop 2 proc)
        (assoc
@@ -63,6 +56,7 @@
 
 (comment
   
+;;; Test Data
 (def test-main
   '(main
     ;; Load A[0]
@@ -124,12 +118,7 @@
    :counter 11
    :labels {'A 0 'i 10}})
 
-(proc? (first test-procs))
-(proc? test-main)
-
-(label? :label)
-(label? :push)
-
+;;; First Pass Tests
 (get-label {:ops '(:label test-label :push 4)
             :counter 3
             :labels {}})
@@ -161,6 +150,7 @@
 ;   second-larger 46,
 ;   inc-addr 48}}
 
+;;; Second Pass Tests
 (second-pass (rest test-main) test-procs labelled-prog-data)
 
 ;

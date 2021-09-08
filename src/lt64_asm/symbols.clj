@@ -1,171 +1,189 @@
 (ns lt64-asm.symbols
   (:require [clojure.java.io :as jio]))
 
-;; Labels ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Symbols and op codes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def CR 0x0A)
+
+(def symbol-map
+  {:halt           0x00
+
+   ;; Word Stack Manip
+   :push           0x01
+   :pop            0x02
+   :load           0x03
+   :store          0x04
+
+   :first          0x05
+   :second         0x06
+   :nth            0x07
+   :swap           0x08
+   :rot            0x09
+
+   :rpush          0x0a
+   :rpop           0x0b
+   :rpull          0x0c
+
+   ;; Double Word Stack Manip
+   :dpush          0x0d
+   :dpop           0x0e
+   :dload          0x0f
+   :dstore         0x10
+
+   :dfirst         0x11
+   :dsecond        0x12
+   :dnth           0x13
+   :dswap          0x14
+   :drot           0x15
+
+   :drpush         0x16
+   :drpop          0x17
+   :drpull         0x18
+
+   ;; Word Arithmetic
+   :add            0x19
+   :sub            0x1a
+   :mult           0x1b
+   :div            0x1c
+   :mod            0x1d
+
+   :eq             0x1e
+   :lt             0x1f
+   :gt             0x20
+
+   :multu          0x21
+   :divu           0x22
+   :modu           0x23
+   :ltu            0x24
+   :gtu            0x25
+
+   ;;; Word Bit Ops
+   :sl             0x26
+   :sr             0x27
+   :and            0x28
+   :or             0x29
+   :not            0x2a
+
+   ;; Double Word Arithmetic
+   :dadd            0x2b
+   :dsub            0x2c
+   :dmult           0x2d
+   :ddiv            0x2e
+   :dmod            0x2f
+
+   :deq             0x30
+   :dlt             0x31
+   :dgt             0x32
+
+   :dmultu          0x33
+   :ddivu           0x34
+   :dmodu           0x35
+   :dltu            0x36
+   :dgtu            0x37
+
+   ;;; Double Word Bit Ops
+   :dsl             0x38
+   :dsr             0x39
+   :dand            0x3a
+   :dor             0x3b
+   :dnot            0x3c
+
+   ;;; Movement
+   :jump            0x3d
+   :branch          0x3e
+   :call            0x3f
+   :ret             0x40
+
+   ;;; Addresses
+   :dsp             0x41
+   :pc              0x42
+   :bfp             0x43
+   :fmp             0x44
+
+   ;;; Write
+   :wprn            0x45
+   :dprn            0x46
+   :wprnu           0x47
+   :dprnu           0x48
+   :fprn            0x49
+   :fprnsc          0x4a
+
+   :prnch           0x4b
+   :prn             0x4c
+   :prnln           0x4d
+   :prnsp-unused    0x4e
+   :prnmem          0x4f
+
+   ;;; Read
+   :wread           0x50
+   :dread           0x51
+   :fread           0x52
+   :freadsc         0x53
+   :readch          0x54
+   :read-unused     0x55
+   :readln          0x56
+   :readsp-unused   0x57
+
+   ;;; Buffer and Chars
+   :bufload        0x58
+   :bufstore       0x59
+   :high           0x5a
+   :low            0x5b
+   :pack           0x5c
+   :unpack         0x5d
+
+   ;;; Memory
+   :memcopy        0x5e
+   :strcopy        0x5f
+
+   ;;; Fixed Point Arithmetic
+   :fmult          0x60
+   :fdiv           0x61
+   :fmultu         0x62
+   :fdivu          0x63
+
+   :invalid        0xff})
+
+;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn lt64-prog?
+  [file]
+  (= (first file) 'lt64-asm-prog))
+
+(defn lt64-mod?
+  [file]
+  (= (first file) 'lt64-asm-mod))
+
+(defn static?
+  [instr]
+  (= (first instr) 'static))
+
+(defn main?
+  [instr]
+  (= (first instr) 'main))
+
+(defn include?
+  [instr]
+  (= (first instr) 'include))
+
+(defn label?
+  [op]
+  (= :label op))
+
+(defn proc?
+  [proc]
+  (= (first proc) 'proc))
+
+;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
   [label value labels]
   (if (get labels label)
     (throw (Exception. (str "Error: label has already been declared: " label)))
     (assoc labels label value)))
 
-;; Symbols and op codes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def CR 0x0A)
-
-(def symbol-map
-  {:halt        0x00
-
-   ;; WORDs
-   :push        0x01
-   :pop         0x02
-   :get         0x03
-   :load        0x04
-   :store       0x05
-
-   :add         0x06
-   :sub         0x07
-   :mult        0x08
-   :div         0x09
-   :div-u       0x0a
-
-   :eq          0x0b
-   :lt          0x0c
-   :lt-u        0x0d
-   :gt          0x0e
-   :gt-u        0x0f
-
-   ;; DWORDs
-   :push-d      0x10
-   :pop-d       0x11
-   :get-d       0x12
-   :load-d      0x13
-   :store-d     0x14
-
-   :add-d       0x15
-   :sub-d       0x16
-   :mult-d      0x17
-   :div-d       0x18
-   :div-du      0x19
-
-   :eq-d        0x1a
-   :lt-d        0x1b
-   :lt-du       0x1c
-   :gt-d        0x1d
-   :gt-du       0x1e
-
-   ;; QWORDs
-   :push-q      0x1f
-   :pop-q       0x20
-   :get-q       0x21
-   :load-q      0x22
-   :store-q     0x23
-
-   :add-q       0x24
-   :sub-q       0x25
-   :mult-q      0x26
-   :div-q       0x27
-   :div-qu      0x28
-
-   :eq-q        0x29
-   :lt-q        0x2a
-   :lt-qu       0x2b
-   :gt-q        0x2c
-   :gt-qu       0x2d
-
-   ;; Jumps
-   :jump        0x2e
-   :jump-im     0x2f
-   :branch      0x30
-   :call        0x31
-   :ret         0x32
-
-   ;; Builtin Addresses
-   :sp          0x33
-   :fp          0x34
-   :pc          0x35
-   :ra          0x36
-
-   ;; Print
-   :print       0x37
-   :print-u     0x38
-   :print-d     0x39
-   :print-du    0x3a
-   :print-q     0x3b
-   :print-qu    0x3c
-   :print-ch    0x3d
-   :print-str   0x3e
-
-   ;; Read
-   :read        0x3f
-   :read-d      0x40
-   :read-q      0x41
-   :read-str    0x42
-
-   ;; Shifts
-   :shift-l     0x43
-   :shift-r     0x44
-   :shift-ld    0x45
-   :shift-rd    0x46
-   :shift-lq    0x47
-   :shift-rq    0x48
-
-   ;; Logical Bitwise
-   :and         0x49
-   :and-d       0x4a
-   :and-q       0x4b
-   :or          0x4c
-   :or-d        0x4d
-   :or-q        0x4e
-   :not         0x4f
-   :not-d       0x50
-   :not-q       0x51
-
-   ;; Free Memory
-   :prg         0x52
-   :brk         0x53
-   :brk-add     0x54
-   :brk-drop    0x55
-
-   ;; Fixed Point
-   :add-f       0x56
-   :sub-f       0x57
-   :mult-f      0x58
-   :div-f       0x59
-
-   :eq-f        0x5a
-   :lt-f        0x5b
-   :gt-f        0x5c
-
-   :print-f     0x5d
-   :read-f      0x5e
-
-   :invalid     0xff})
-
 (defn key->op
   [key_]
   (if-let [op (key_ symbol-map)]
     op
     (:invalid symbol-map)))
-
-;; Bytes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def initial-bytes
-  "Program start with a jump over the static data. At the start we don't know
-  know where that is, so we will reserve 2 words for the address for now. The
-  addres will default to jumping to the end of memory which will cause a
-  program out of bound error."
-  [(key->op :invalid)
-   (key->op :invalid)
-   (key->op :jump-im)])
-
-(def WORD unchecked-byte)
-
-(defn ->bytes
-  [byte-seq]
-  (byte-array (map WORD byte-seq)))
-
-(defn write-bytes
-  [filename bytes_]
-    (with-open [out (jio/output-stream (jio/file filename))]
-      (.write out bytes_)))
 
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
@@ -174,11 +192,10 @@
 (key->op :add)
 (key->op :never)
 
-;; Maintain byte seq with just the actual numbers and transform it to
-;; a byte array before passing to write-bytes
-(def bxs (list 0xaa 0xbb 0xcc 0xdd))
-(write-bytes "test/lt64-asm/binfile.test" (->bytes bxs))
- 
+(proc? '(proc some-proc :push 1))
+(proc? '(main :push 3))
 
+(label? :label)
+(label? :push)
 
 ),
