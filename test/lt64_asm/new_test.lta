@@ -1,16 +1,55 @@
-(lt64-asm
+(lt64-asm-prog
   (static
-    (type label size data)
-  )
+    (:word A 10 1 8 3 2 7 0 6 3 4 9)
+    (:word i 1 1))
 
   (main
-    :program-instruction
-    (compound-instruction data arg etc)
+    ;; Load A[0]
+    :push A
+    :load-a
+
+    ;; Loop over nums
+    :label loop
+
+    ;; Load num at A[i]
+    :push i
+    :load-a
+
+    ;; call max function
+    :call max
+
+    ;; Check if we have run them all
+    :push i
+    :push 10
+    :eq
+    :branch end-loop
+    
+    ;; not finished increment i and loop
+    :push i
+    :load-a
+    :push 1
+    :add
+    :push i
+    :store
+    :jump loop
+
+    ;; finished
+    :label end-loop
+    :wprn
+    :push 10
+    :prnch
+    :halt)
+
+  ;; find max of two numbers on the stack
+  (proc max
+    :gt
+    :branch second-larger
+    :swap
+    :label second-larger
+    :pop
+    :ret
   )
 
-  (proc label
-    :instruction
-  )
-
-  (include some-file)
+  ;; include something for testing, but not important for the program
+  (include "test/lt64_asm/test_mod1.lta")
 )

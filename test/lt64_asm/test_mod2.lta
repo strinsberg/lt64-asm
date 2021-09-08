@@ -1,0 +1,7 @@
+(lt64-asm-mod
+  (proc add-3
+    :push 3
+    :add)
+  (proc add-8
+    :push 8
+    :add))

@@ -1,11 +1,13 @@
 (ns lt64-asm.static
   (:require [lt64-asm.symbols :as sym]))
 
+;;; Constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def byte-bits 8)
 (def word-size 2)
 (def double-word-size 4)
 (def default-scale 1000)
 
+;;; Number Conversion ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn num->word
   [number]
   (try
@@ -33,6 +35,7 @@
                     ", scale: "
                     scale-factor)))))))
 
+;;; Byte Manipulation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-bytes
   "list of bytes from high byte to low byte"
   [number num-bytes]
@@ -77,6 +80,7 @@
     (> new-len len) (pad-zero (- new-len len) col)
     :else col))
 
+;;; Allocation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn alloc->nums
   [num-elems elem-size byte-args args]
   (adjust
@@ -85,10 +89,12 @@
     (mapcat #(num->bytes % byte-args)
        (reverse args))))
 
+;; Allocate methods
 (defmulti allocate
   (fn [static-instr]
     (first static-instr)))
 
+; Allocate numbers
 (defmethod allocate :word
   [[_ label size & args]]
   {:bytes
@@ -125,6 +131,7 @@
                 args)
    :words (* size 2)})
 
+; Allocate Characters
 (defmethod allocate :str
   [[_ label arg]]
   (let [bytes_ (pad-zero 1 (reverse (map byte arg)))
@@ -145,10 +152,12 @@
     {:bytes result
      :words (/ (count result) 2)}))
 
+; Unknown Allocation Type
 (defmethod allocate :default
   [[kind & _]]
   (throw (Exception. (str "Error: invalid static data type: " kind))))
 
+;;; Static Processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
   [label value labels]
   (if (get labels label)
@@ -156,17 +165,18 @@
     (assoc labels label value)))
 
 (defn process-static
-  [static program-data]
-  (if (empty? static)
+  [instructions program-data]
+  (if (empty? instructions)
     program-data
     (let [{:keys [bytes labels counter]} program-data
-          instr (first static)
+          instr (first instructions)
           instr-data (allocate instr)]
-        (recur (rest static)
+        (recur (rest instructions)
              {:bytes (concat (:bytes instr-data) bytes)
               :labels (set-label (second instr) counter labels)
               :counter (+ counter (:words instr-data))}))))
 
+;;; REPL Work ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 (def test-data {:counter (count sym/initial-bytes) :bytes '() :labels {}})
 (def test-static

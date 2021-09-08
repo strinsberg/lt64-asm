@@ -1,6 +1,14 @@
-(ns lt64-asm.program
-  (:require [lt64-asm.symbols :as sym]
-            [clojure.edn :as edn]))
+(ns lt64-asm.files
+  (:require [clojure.edn :as edn]))
+
+;; program predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn lt64-prog?
+  [file]
+  (= (first file) 'lt64-asm-prog))
+
+(defn lt64-mod?
+  [file]
+  (= (first file) 'lt64-asm-mod))
 
 (defn static?
   [instr]
@@ -18,9 +26,10 @@
   [instr]
   (= (first instr) 'proc))
 
+;; file type identifiers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-program
   [file]
-  (if (and (= (first file) 'lt64-asm-prog)
+  (if (and (lt64-prog? file)
            (static? (second file))
            (main? (nth file 2)))
     (rest file)
@@ -29,14 +38,16 @@
 
 (defn lt64-module
   [file]
-  (if (and (= (first file) 'lt64-asm-mod)
+  (if (and (lt64-mod? file)
            (every? #(or (proc? %) (include? %))
                    (rest file)))
     (rest file)
     (throw
       (Exception. "Error: Not a valid lt64-asm module"))))
 
+;; Include and expand proc section ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare expand)
+
 (defn include
   [[_ filename]]
   (trampoline
@@ -58,18 +69,8 @@
                (str "Error: Stack overflow while expanding includes. "
                     "Most likely there are circular dependencies."))))))
 
-(defn first-pass
-  [main procs program-data]
-  )
-
-(defn second-pass
-  [main procs program-data]
-  )
-
+;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
-  
-(every? even? [2 6 4 8])
-(flatten [[1 2][3 4]])
 
 (include '(include "test/lt64_asm/test_mod1.lta"))
 
