@@ -158,12 +158,6 @@
   (throw (Exception. (str "Error: invalid static data type: " kind))))
 
 ;;; Static Processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn set-label
-  [label value labels]
-  (if (get labels label)
-    (throw (Exception. (str "Error: label has already been declared: " label)))
-    (assoc labels label value)))
-
 (defn process-static
   [instructions program-data]
   (if (empty? instructions)
@@ -173,7 +167,7 @@
           instr-data (allocate instr)]
         (recur (rest instructions)
              {:bytes (concat (:bytes instr-data) bytes)
-              :labels (set-label (second instr) counter labels)
+              :labels (sym/set-label (second instr) counter labels)
               :counter (+ counter (:words instr-data))}))))
 
 ;;; REPL Work ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -78,7 +78,7 @@
 (defn asm
   [file]
   (let [[static main & procs-and-includes] (lt64-file file)
-        procs (prog/expand procs-and-includes)]
+        procs (files/expand procs-and-includes)]
     (->> static
          stat/process-static
          (prog/first-pass main procs)

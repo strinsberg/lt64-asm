@@ -6,14 +6,17 @@
   (main
     ;; Load A[0]
     :push A
-    :load-a
+    :load-lb
 
     ;; Loop over nums
     :label loop
 
     ;; Load num at A[i]
     :push i
-    :load-a
+    :load-lb
+    :push A
+    :add
+    :load-lb
 
     ;; call max function
     :call max
@@ -26,11 +29,7 @@
     
     ;; not finished increment i and loop
     :push i
-    :load-a
-    :push 1
-    :add
-    :push i
-    :store
+    :inc-at
     :jump loop
 
     ;; finished
@@ -49,6 +48,14 @@
     :pop
     :ret
   )
+
+  (proc inc-at
+    :load-a
+    :dup
+    :push 1
+    :add
+    :store
+    :ret)
 
   ;; include something for testing, but not important for the program
   (include "test/lt64_asm/test_mod1.lta")

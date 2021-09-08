@@ -1,6 +1,13 @@
 (ns lt64-asm.symbols
   (:require [clojure.java.io :as jio]))
 
+;; Labels ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn set-label
+  [label value labels]
+  (if (get labels label)
+    (throw (Exception. (str "Error: label has already been declared: " label)))
+    (assoc labels label value)))
+
 ;; Symbols and op codes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def CR 0x0A)
 
