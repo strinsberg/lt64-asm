@@ -1,0 +1,16 @@
+(lt64-asm
+  (static
+    (type label size data)
+  )
+
+  (main
+    :program-instruction
+    (compound-instruction data arg etc)
+  )
+
+  (proc label
+    :instruction
+  )
+
+  (include some-file)
+)

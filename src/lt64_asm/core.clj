@@ -74,5 +74,25 @@
 ;; second pass convert all instructions to bytes and fill in addresses etc.
 ;;   return a seq of bytes
 ;; write bytes to a file
+(defn lt64-file
+  [file]
+  (if (and (= file-type 'lt64-asm)
+           (= (first (second file)) 'static)
+           (= (first (nth file 2)) 'main))
+    (rest file)
+    nil))
+
+(defn asm
+  [file]
+  (if-let [[static main & procs-and-incs] (lt64-file file)]
+    (->> static
+         stat/process-static
+         (prog/expand-all main)
+         prog/get-labels
+         prog/replace-labels
+         prog/ops->bytes
+         concat-bytes
+         reverse)
+    (println "Error: not a valid lt64-asm file")))
 
 ),

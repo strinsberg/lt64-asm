@@ -1,29 +1,64 @@
 (ns lt64-asm.static
   (:require [lt64-asm.symbols :as sym]))
 
-(def char-types #{:str :char})
-(def number-types #{:word :word-d :word-q :word-f})
+(def byte-bits 8)
+(def word-size 2)
+(def double-word-size 4)
+(def default-scale 1000)
 
-(defn get-byte
-  [number pos]
-  (bit-and (bit-shift-right number (* pos 8))
-           0xff))
+(defn num->word
+  [number]
+  (try
+    (short number)
+    (catch IllegalArgumentException e
+      (throw (Exception. (str "Error: word literal out of range: " number))))))
+
+(defn num->dword
+  [number]
+  (try
+    (int number)
+    (catch IllegalArgumentException e
+      (throw (Exception. (str "Error: word literal out of range: " number))))))
+
+(defn num->fixed-point
+  [number scale]
+  (let [scale-factor (or scale default-scale)]
+    (try
+      (int (* number scale-factor))
+      (catch IllegalArgumentException e
+        (throw (Exception.
+               (str "Error: given scale makes fixed point literal too large "
+                    "for double word. number: "
+                    number
+                    ", scale: "
+                    scale-factor)))))))
+
+(defn get-bytes
+  "list of bytes from high byte to low byte"
+  [number num-bytes]
+  (loop [x number
+         n num-bytes
+         res '()]
+    (if (= n 0)
+      res
+      (recur (bit-shift-right x byte-bits)
+             (dec n)
+             (cons (bit-and x 0xff) res)))))
+
+(defn flip-dword-bytes
+  [dword]
+  (concat (drop 2 dword) (take 2 dword)))
 
 (defn num->bytes
-  [x n]
-  (for [i (range n)]
-    (get-byte x i)))
-
-(defn words->bytes
-  [words n]
-  (->> words
-       (map #(num->bytes % n))
-       reverse
-       flatten))
-
-(defn string-bytes
-  [string]
-  (reverse (map byte string)))
+  [number args]
+  (case (:kind args)
+    :word (get-bytes (num->word number) word-size)
+    :dword (flip-dword-bytes
+             (get-bytes (num->dword number) double-word-size))
+    :fword (flip-dword-bytes
+             (get-bytes (num->fixed-point number (:scale args))
+                        double-word-size))
+    nil))
 
 (defn pad
   [value times seq_]
@@ -42,110 +77,127 @@
     (> new-len len) (pad-zero (- new-len len) col)
     :else col))
 
-(defn static-chars
-  [kind args]
-  (case kind
-    :str {:bytes (pad-zero 1 (->> args first reverse (map byte)))
-          :count (-> args first count inc)}
-    :char {:bytes
-           (let [[size string] args
-                length (count string)
-                bytes_ (reverse (map byte string))]
-            (if (< length size)
-              (adjust size length bytes_)
-              (adjust size
-                      (dec size)
-                      (drop (inc (- length size)) bytes_))))
-           :count (first args)}
-    (list 0x00)))
+(defn alloc->nums
+  [num-elems elem-size byte-args args]
+  (adjust
+    (* num-elems elem-size)
+    (* (count args) elem-size)
+    (mapcat #(num->bytes % byte-args)
+       (reverse args))))
 
-(defn static-nums
-  [kind [size & args]]
-  (let [len (count args)]
-    (case kind
-      :word {:bytes (adjust size len (reverse args))
-             :count size}
-      :word-d {:bytes (adjust (* 2 size) (* 2 len) (words->bytes args 2))
-               :count (* size 2)}
-      :word-q {:bytes (adjust (* 4 size) (* 4 len) (words->bytes args 4))
-               :count (* size 4)}
-      :word-f {:bytes
-               (adjust (* 4 size) (* 4 len) (words->bytes
-                                             (map #(int (* 1000 %)) args)
-                                             4))
-               :count (* size 4)}
-      (list 0x00))))  ;; invalid kind throw?
+(defmulti allocate
+  (fn [static-instr]
+    (first static-instr)))
 
-(defn get-static-data
-  [kind args]
-  (cond
-    (kind char-types) (static-chars kind args)
-    (kind number-types) (static-nums kind args)
-    :else (list 0x00)))  ;; invalid throw?
+(defmethod allocate :word
+  [[_ label size & args]]
+  {:bytes
+   (alloc->nums size
+                word-size
+                {:kind :word}
+                args)
+   :words size})
 
-(defn alloc
-  [inst prog-data]
-  (let [{:keys [counter bytes labels]} prog-data
-        kind (first inst)
-        name_ (keyword (second inst))
-        data (get-static-data kind (drop 2 inst))]
-    (assoc prog-data
-           :labels (assoc labels name_ counter)
-           :bytes (concat (:bytes data) bytes)
-           :counter (+ counter (:count data)))))
-  
+(defmethod allocate :dword
+  [[_ label size & args]]
+  {:bytes
+   (alloc->nums size
+                double-word-size
+                {:kind :dword}
+                args)
+   :words (* size 2)})
+
+(defmethod allocate :fword
+  [[_ label size & args]]
+  {:bytes
+   (alloc->nums size
+                double-word-size
+                {:kind :fword :scale default-scale}
+                args)
+   :words (* size 2)})
+
+(defmethod allocate :fword-sc
+  [[_ label size scale & args]]
+  {:bytes
+   (alloc->nums size
+                double-word-size
+                {:kind :fword :scale scale}
+                args)
+   :words (* size 2)})
+
+(defmethod allocate :str
+  [[_ label arg]]
+  (let [bytes_ (pad-zero 1 (reverse (map byte arg)))
+        result (if (even? (count bytes_))
+                 bytes_
+                 (pad-zero 1 bytes_))]
+    {:bytes result
+     :words (/ (count result) 2)}))
+
+(defmethod allocate :char
+  [[_ label size arg]]
+  (let [bytes_ (adjust size (count arg) (reverse (map byte arg)))
+        result (if (even? size)
+                 (if (= 0 (first bytes_))
+                   bytes_
+                   (pad-zero 1 (rest bytes_)))
+                 (pad-zero 1 bytes_))]
+    {:bytes result
+     :words (/ (count result) 2)}))
+
+(defmethod allocate :default
+  [[kind & _]]
+  (throw (Exception. (str "Error: invalid static data type: " kind))))
+
+(defn set-label
+  [label value labels]
+  (if (get labels label)
+    (throw (Exception. (str "Error: label has already been declared: " label)))
+    (assoc labels label value)))
+
 (defn process-static
-  [static]
-  (let [prog-data
-        (reduce #(alloc %2 %1)
-                {:counter (count sym/initial-bytes)
-                 :bytes '()
-                 :labels {}}
-                static)]
-    (assoc prog-data
-           :prog-start (:counter prog-data))))
+  [static program-data]
+  (if (empty? static)
+    program-data
+    (let [{:keys [bytes labels counter]} program-data
+          instr (first static)
+          instr-data (allocate instr)]
+        (recur (rest static)
+             {:bytes (concat (:bytes instr-data) bytes)
+              :labels (set-label (second instr) counter labels)
+              :counter (+ counter (:words instr-data))}))))
 
 (comment
-
 (def test-data {:counter (count sym/initial-bytes) :bytes '() :labels {}})
+(def test-static
+  '(static
+     (:str Str "Hello, World")
+     (:str OddStr "Hello, World!")
+     (:char Chars 15 "Hello, World")
+     (:word A 10 -2 -1 0 1 2)
+     (:dword B 5 1 2)
+     (:word C 2)
+     (:fword D 2 1.23 4.45 8.238)
+     (:fword-sc E 4 10 1.23 4.45)))
 
-(pad 0 5 (list 1 2 3))
-
-(num->bytes 0xaabb 2)
-
-(get-static-data :str (list "12345"))
-(get-static-data :str (list "123456789"))
-(get-static-data :char (list 3 "12345"))
-(get-static-data :char (list 5 "12345")) ; (0 52 51 50 49)
-(get-static-data :char (list 10 "12345")) ; (0 0 0 0 0 53 52 51 50 49)
-
-(get-static-data :word (list 10 1 2 3 4 5)) ; (0 0 0 0 0 5 4 3 2 1)
-(get-static-data :word-d (list 10 1 2 3 4 5)) ; (5 0 4 0 3 0 2 0 1 0)
-(get-static-data :word-q (list 3 1 2 3 4 5)) ; (3 0 0 0 2 0 0 0 1 0 0 0)
-(get-static-data :word-f (list 3 10.123)) ; (3 0 0 0 2 0 0 0 1 0 0 0)
-
-(alloc '(:str hello "Hello, World!") test-data)
-; (0 33 100 108 114 111 87 32 44 111 108 108 101 72)
-(alloc '(:char hello 20 "Hello, World!") test-data)
-; (0 0 0 0 0 0 0 33 100 108 114 111 87 32 44 111 108 108 101 72)
-(alloc '(:char hello 10 "Hello, World!") test-data)
-; (0 111 87 32 44 111 108 108 101 72)
-
-(alloc '(:word arr 10 0xaa 0xbb 0xcc) test-data)
-; (0 0 0 0 0 0 0 204 187 170)
-(alloc '(:word-d arr 5 0xaabb 0xccdd) test-data)
-; (0 0 0 0 0 0 221 204 187 170)
-(alloc '(:word-q arr 5 0xaabbccdd) test-data)
-; (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 221 204 187 170)
-(alloc '(:word-f arr 5 10.123) test-data)
-; (0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 139 39 0 0)
+(num->bytes 0xffffffff {:kind :word})
+(num->bytes 0x11aabbcc {:kind :dword})
+(reverse (flip-dword-bytes '(4 3 2 1)))
+;(3 4 1 2) is how it would be when the vm reads it highword lowword and
+; each word is lowbyte highbyte.
 
 
-(def static '(static
-               (:str hello "hello")
-               (:char world 6 "world")
-               (:word-d addresses 5 0xaabb 0xccdd)))
+(allocate '(:word name 1 0x0001 0x0002 0x0003))
+(allocate '(:word name 2 0x0001 0x0002 0x0003))
+(allocate '(:word name 3 0x0001 0x0002 0x0003))
+(allocate '(:word name 5 0x0001 0x0002 0x0003))
 
-(process-static (rest static))
+(allocate '(:dword name 5 0x11223344 0x0002 0x55667788))
+(allocate '(:fword name 5 10.123 5.456 20.789))
+(allocate '(:fword-sc name 5 100 10.123 5.456 20.789))
 
+(process-static (rest test-static) test-data)
+
+;
 ),
+
