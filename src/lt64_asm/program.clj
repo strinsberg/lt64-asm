@@ -1,6 +1,7 @@
 (ns lt64-asm.program
   (:require [lt64-asm.symbols :as sym]
             [lt64-asm.files :as files]
+            [lt64-asm.bytes :as b]
             [clojure.edn :as edn]))
 
 (defn get-label-from-ops
@@ -50,10 +51,86 @@
        (get-op-labels main)
        (get-proc-labels procs)))
 
+;;; Second Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn replace-wnum
+  [[op value] program-data]
+  (->> (:bytes program-data)
+       (cons (b/op->bytes op))
+       (cons (b/num->bytes value {:kind :word}))
+       (assoc program-data :bytes)))
+
+(defn replace-dnum
+  [[op value] program-data]
+  (->> (:bytes program-data)
+       (cons (b/op->bytes op))
+       (cons (b/num->bytes value {:kind :dword}))
+       (assoc program-data :bytes)))
+
+(defn replace-fnum
+  [[op value] program-data]
+  (->> (:bytes program-data)
+       (cons (b/op->bytes :dpush))
+       (cons (b/num->bytes value {:kind :fword}))
+       (assoc program-data :bytes)))
+
+(defn replace-label
+  [op program-data]
+  (->> (:bytes program-data)
+       (cons (b/num->bytes
+               (op (:labels program-data))
+               {:kind :word}))
+       (assoc program-data :bytes)))
+
+(defn replace-op
+  [op program-data]
+  (->> (:bytes program-data)
+       (cons (b/op->bytes op))
+       (assoc program-data :bytes)))
+
+(defn replace-labels
+  [ops program-data]
+  (cond
+    (empty? ops) '()
+
+    (label? (first ops))
+    (lazy-seq
+      (replace-labels (drop 2 ops) program-data))
+
+    (symbol? (first ops))
+    (cons
+      (get (:labels program-data) (first ops))
+      (lazy-seq
+        (replace-labels (rest ops) program-data)))
+
+    :else
+    (cons
+      (first ops)
+      (lazy-seq
+        (replace-labels (rest ops) program-data)))))
+
+(defn replace-ops
+  [ops program-data]
+  (let [op (first ops)]
+    (cond
+      (empty? ops) program-data
+      (sym/wnum-op? op) (recur (drop 2 ops) (replace-wnum (take 2 ops) program-data))
+      (sym/dnum-op? op) (recur (drop 2 ops) (replace-dnum (take 2 ops) program-data))
+      (= :fpush op) (recur (drop 2 ops) (replace-fnum (take 2 ops) program-data))
+      (keyword? op) (recur (rest ops) (replace-op op program-data))
+      :else (throw
+              (Exception. (str "Error: Invalid operation: " op))))))
+
 (defn second-pass
   [main procs program-data]
-  )
+  (reduce #(-> (drop 2 %2)
+               (replace-labels program-data)
+               (replace-ops %1))
+          (-> main
+              (replace-labels program-data)
+              (replace-ops program-data))
+          procs))
 
+;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
   
 ;;; Test Data
@@ -61,32 +138,36 @@
   '(main
     ;; Load A[0]
     :push A
-    :load-a
+    :load-lb
 
     ;; Loop over nums
     :label loop
 
     ;; Load num at A[i]
     :push i
-    :load-a
+    :load-lb
     :push A
     :add
-    :load-a
+    :load-lb
 
     ;; call max function
-    :call max
+    :push max
+    :call
 
     ;; Check if we have run them all
     :push i
-    :load-a
+    :load-lb
     :push 10
     :eq
-    :branch end-loop
+    :push end-loop
+    :branch
     
     ;; not finished increment i and loop
     :push i
-    :call inc-addr
-    :jump loop
+    :push inc-addr
+    :call
+    :push loop
+    :jump
 
     ;; finished
     :label end-loop
@@ -99,18 +180,19 @@
 (def test-procs
   '((proc max
     :gt
-    :branch second-larger
+    :push second-larger
+    :branch
     :swap
     :label second-larger
     :pop
     :ret)
   
   (proc inc-addr
-    :load-a
-    :dup
+    :load-lb
+    :first
     :push 1
     :add
-    :store
+    :store-lb
     :ret)))
 
 (def test-prog-data
@@ -151,6 +233,17 @@
 ;   inc-addr 48}}
 
 ;;; Second Pass Tests
+(replace-wnum '(:push 0xaa) test-prog-data)
+(replace-dnum '(:dpush 0x00bbccdd) test-prog-data)
+(replace-fnum '(:fpush 10.123) test-prog-data)
+(replace-op :branch test-prog-data)
+(replace-label 'i test-prog-data)
+
+(def main-replaced-labels
+  (replace-labels (rest test-main) labelled-prog-data))
+
+(replace-ops main-replaced-labels labelled-prog-data)
+
 (second-pass (rest test-main) test-procs labelled-prog-data)
 
 ;

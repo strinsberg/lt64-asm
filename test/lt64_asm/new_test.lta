@@ -50,11 +50,11 @@
   )
 
   (proc inc-at
-    :load-a
+    :load-lb
     :dup
     :push 1
     :add
-    :store
+    :store-lb
     :ret)
 
   ;; include something for testing, but not important for the program

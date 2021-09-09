@@ -14,9 +14,9 @@
   know where that is, so we will reserve 2 words for the address for now. The
   addres will default to jumping to the end of memory which will cause a
   program out of bound error."
-  [(sym/key->op :invalid)
-   (sym/key->op :invalid)
-   (sym/key->op :jump-im)])
+  [(sym/op->code :invalid)
+   (sym/op->code :invalid)
+   (sym/op->code :jump-im)])
 
 ;;; Byte Manipulation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-bytes
@@ -63,6 +63,10 @@
     (> new-len len) (pad-zero (- new-len len) col)
     :else col))
 
+(defn op->bytes
+  [op]
+  (num->bytes (sym/op->code op) {:kind :word}))
+
 (def WORD unchecked-byte)
 
 (defn ->bytes
@@ -82,6 +86,8 @@
 (reverse (flip-dword-bytes '(4 3 2 1)))
 ;(3 4 1 2) is how it would be when the vm reads it highword lowword and
 ; each word is lowbyte highbyte.
+
+(op->bytes :push)
 
 ;; Maintain byte seq with just the actual numbers and transform it to
 ;; a byte array before passing to write-bytes

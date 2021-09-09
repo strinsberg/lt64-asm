@@ -11,7 +11,9 @@
    :push           0x01
    :pop            0x02
    :load           0x03
+   :load-lb        0x0103
    :store          0x04
+   :store-lb       0x0104
 
    :first          0x05
    :second         0x06
@@ -27,7 +29,9 @@
    :dpush          0x0d
    :dpop           0x0e
    :dload          0x0f
+   :dload-lb       0x010f
    :dstore         0x10
+   :dstore-lb      0x0110
 
    :dfirst         0x11
    :dsecond        0x12
@@ -57,6 +61,7 @@
    :gtu            0x25
 
    ;;; Word Bit Ops
+   ; TODO compound versions of shift
    :sl             0x26
    :sr             0x27
    :and            0x28
@@ -81,6 +86,7 @@
    :dgtu            0x37
 
    ;;; Double Word Bit Ops
+   ; TODO compound versions of shift
    :dsl             0x38
    :dsr             0x39
    :dand            0x3a
@@ -88,12 +94,14 @@
    :dnot            0x3c
 
    ;;; Movement
+   ; TODO compound versions of jump and branch
    :jump            0x3d
    :branch          0x3e
    :call            0x3f
    :ret             0x40
 
    ;;; Addresses
+   ; TODO compound versions of jump and branch
    :dsp             0x41
    :pc              0x42
    :bfp             0x43
@@ -105,6 +113,7 @@
    :wprnu           0x47
    :dprnu           0x48
    :fprn            0x49
+   ; TODO compund verion
    :fprnsc          0x4a
 
    :prnch           0x4b
@@ -117,6 +126,7 @@
    :wread           0x50
    :dread           0x51
    :fread           0x52
+   ; TODO compund version
    :freadsc         0x53
    :readch          0x54
    :read-unused     0x55
@@ -124,6 +134,7 @@
    :readsp-unused   0x57
 
    ;;; Buffer and Chars
+   ; TODO compund versions of buf load and store
    :bufload        0x58
    :bufstore       0x59
    :high           0x5a
@@ -132,15 +143,19 @@
    :unpack         0x5d
 
    ;;; Memory
-   :memcopy        0x5e
-   :strcopy        0x5f
+   :mem-to-buf     0x005e
+   :buf-to-mem     0x015e
+   :str-to-buf     0x005f
+   :str-to-mem     0x015f
 
    ;;; Fixed Point Arithmetic
    :fmult          0x60
    :fdiv           0x61
-   :fmultu         0x62
-   :fdivu          0x63
+   :fmultsc        0x62
+   :fdivsc         0x63
 
+   ;; Pseudo ops that will be replaced or signal an error
+   :fpush          0xff
    :invalid        0xff})
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -172,6 +187,14 @@
   [proc]
   (= (first proc) 'proc))
 
+(defn wnum-op?
+  [op]
+  (contains? #{:push} op))
+
+(defn dnum-op?
+  [op]
+  (contains? #{:dpush} op))
+
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
   [label value labels]
@@ -179,11 +202,12 @@
     (throw (Exception. (str "Error: label has already been declared: " label)))
     (assoc labels label value)))
 
-(defn key->op
+(defn op->code
   [key_]
   (if-let [op (key_ symbol-map)]
     op
-    (:invalid symbol-map)))
+    (throw (Exception.
+             (str "Error: Invalid operation: " key_)))))
 
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
