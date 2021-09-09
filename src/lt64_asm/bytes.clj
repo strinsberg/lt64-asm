@@ -9,14 +9,14 @@
 (def word-size 2)
 (def double-word-size 4)
 
-(def initial-bytes
+(declare op->bytes)
+(def initial-words
   "Program start with a jump over the static data. At the start we don't know
-  know where that is, so we will reserve 2 words for the address for now. The
-  addres will default to jumping to the end of memory which will cause a
-  program out of bound error."
-  [(sym/op->code :invalid)
-   (sym/op->code :invalid)
-   (sym/op->code :jump-im)])
+  know where that is, so we use reserve space for a push and start address and
+  add a jump"
+  [(op->bytes :jump)
+   (op->bytes :invalid)
+   (op->bytes :invalid)])
 
 ;;; Byte Manipulation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-bytes

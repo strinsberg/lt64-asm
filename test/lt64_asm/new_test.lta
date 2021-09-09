@@ -19,18 +19,22 @@
     :load-lb
 
     ;; call max function
-    :call max
+    :push max
+    :call
 
     ;; Check if we have run them all
     :push i
     :push 10
     :eq
-    :branch end-loop
+    :push end-loop
+    :branch
     
     ;; not finished increment i and loop
     :push i
-    :inc-at
-    :jump loop
+    :push inc-at
+    :call
+    :push loop
+    :jump
 
     ;; finished
     :label end-loop
@@ -42,21 +46,21 @@
   ;; find max of two numbers on the stack
   (proc max
     :gt
-    :branch second-larger
+    :push second-larger
+    :branch
     :swap
     :label second-larger
     :pop
-    :ret
-  )
+    :ret)
 
   (proc inc-at
     :load-lb
-    :dup
+    :first
     :push 1
     :add
     :store-lb
     :ret)
 
   ;; include something for testing, but not important for the program
-  (include "test/lt64_asm/test_mod1.lta")
+  ;;(include "test/lt64_asm/test_mod1.lta")
 )

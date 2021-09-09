@@ -10,7 +10,7 @@
   (b/adjust
     (* num-elems elem-size)
     (* (count args) elem-size)
-    (mapcat #(num->bytes % byte-args)
+    (mapcat #(b/num->bytes % byte-args)
        (reverse args))))
 
 ;; Allocate methods
@@ -23,7 +23,7 @@
   [[_ label size & args]]
   {:bytes
    (alloc->nums size
-                word-size
+                b/word-size
                 {:kind :word}
                 args)
    :words size})
@@ -32,7 +32,7 @@
   [[_ label size & args]]
   {:bytes
    (alloc->nums size
-                double-word-size
+                b/double-word-size
                 {:kind :dword}
                 args)
    :words (* size 2)})
@@ -41,8 +41,8 @@
   [[_ label size & args]]
   {:bytes
    (alloc->nums size
-                double-word-size
-                {:kind :fword :scale default-scale}
+                b/double-word-size
+                {:kind :fword :scale nums/default-scale}
                 args)
    :words (* size 2)})
 
@@ -50,7 +50,7 @@
   [[_ label size scale & args]]
   {:bytes
    (alloc->nums size
-                double-word-size
+                b/double-word-size
                 {:kind :fword :scale scale}
                 args)
    :words (* size 2)})
@@ -82,7 +82,7 @@
   (throw (Exception. (str "Error: invalid static data type: " kind))))
 
 ;;; Static Processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn process-static
+(defn process-all
   [instructions program-data]
   (if (empty? instructions)
     program-data
@@ -93,6 +93,16 @@
              {:bytes (concat (:bytes instr-data) bytes)
               :labels (sym/set-label (second instr) counter labels)
               :counter (+ counter (:words instr-data))}))))
+
+(defn set-prog-start
+  [program-data]
+  (assoc program-data
+         :start-address (:counter program-data)))
+
+(defn process-static
+  [static program-data]
+  (set-prog-start
+    (process-all (rest static) program-data)))
 
 ;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment

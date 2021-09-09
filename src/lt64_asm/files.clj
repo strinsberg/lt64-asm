@@ -3,7 +3,21 @@
     [lt64-asm.symbols :as sym]
     [clojure.edn :as edn]))
 
-;; file type identifiers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Load ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn get-program
+  [filename]
+  (try
+    (edn/read-string (slurp filename))
+    (catch Exception e
+      (throw
+        (Exception. (str
+                      "Error: Problem with program file: "
+                      filename
+                      "\n"
+                      (.getMessage e)))))))
+
+
+;; File Type Identifiers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-program
   [file]
   (if (and (sym/lt64-prog? file)
@@ -49,6 +63,7 @@
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
+(get-program "test/lt64_asm/new_test.lta")
 (include '(include "test/lt64_asm/test_mod1.lta"))
 
 ;

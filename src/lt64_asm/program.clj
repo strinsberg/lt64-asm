@@ -4,6 +4,7 @@
             [lt64-asm.bytes :as b]
             [clojure.edn :as edn]))
 
+;;; First Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-label-from-ops
   [{:keys [ops counter labels]}]
   (if (sym/label? (first ops))
@@ -48,7 +49,7 @@
 (defn first-pass
   [main procs program-data]
   (->> program-data
-       (get-op-labels main)
+       (get-op-labels (rest main))
        (get-proc-labels procs)))
 
 ;;; Second Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,7 +78,7 @@
   [op program-data]
   (->> (:bytes program-data)
        (cons (b/num->bytes
-               (op (:labels program-data))
+               (sym/get-label op (:labels program-data))
                {:kind :word}))
        (assoc program-data :bytes)))
 
@@ -92,13 +93,13 @@
   (cond
     (empty? ops) '()
 
-    (label? (first ops))
+    (sym/label? (first ops))
     (lazy-seq
       (replace-labels (drop 2 ops) program-data))
 
     (symbol? (first ops))
     (cons
-      (get (:labels program-data) (first ops))
+      (sym/get-label (first ops) (:labels program-data))
       (lazy-seq
         (replace-labels (rest ops) program-data)))
 
@@ -125,7 +126,7 @@
   (reduce #(-> (drop 2 %2)
                (replace-labels program-data)
                (replace-ops %1))
-          (-> main
+          (-> (rest main)
               (replace-labels program-data)
               (replace-ops program-data))
           procs))
@@ -220,7 +221,9 @@
 ;  :labels {A 0, i 10, max 11, second-larger 15, inc-addr 17}}
 
 (def labelled-prog-data
-  (first-pass (rest test-main) test-procs test-prog-data))
+  (first-pass test-main
+              test-procs
+              test-prog-data))
 ; {:bytes (),
 ;  :counter 55,
 ;  :labels
@@ -239,12 +242,17 @@
 (replace-op :branch test-prog-data)
 (replace-label 'i test-prog-data)
 
+(rest test-main)
 (def main-replaced-labels
-  (replace-labels (rest test-main) labelled-prog-data))
+  (replace-labels (rest test-main)
+                  labelled-prog-data))
 
-(replace-ops main-replaced-labels labelled-prog-data)
+(replace-ops main-replaced-labels
+             labelled-prog-data)
 
-(second-pass (rest test-main) test-procs labelled-prog-data)
+(second-pass test-main
+             test-procs
+             labelled-prog-data)
 
 ;
 ),

@@ -202,6 +202,13 @@
     (throw (Exception. (str "Error: label has already been declared: " label)))
     (assoc labels label value)))
 
+(defn get-label
+  [label labels]
+  (if-let [value (get labels label)]
+    value
+    (throw
+      (Exception. (str "Error: Label has not been declared: " label)))))
+
 (defn op->code
   [key_]
   (if-let [op (key_ symbol-map)]
