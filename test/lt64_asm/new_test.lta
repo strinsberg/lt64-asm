@@ -1,6 +1,6 @@
 (lt64-asm-prog
   (static
-    (:word A 10 1 8 3 2 7 0 6 3 4 9)
+    (:word A 10 1 8 3 2 7 9 6 3 4 0)
     (:word i 1 1))
 
   (main
@@ -24,7 +24,8 @@
 
     ;; Check if we have run them all
     :push i
-    :push 10
+    :load-lb
+    :push 9
     :eq
     :push end-loop
     :branch
@@ -45,6 +46,8 @@
 
   ;; find max of two numbers on the stack
   (proc max
+    :second
+    :second
     :gt
     :push second-larger
     :branch
@@ -54,10 +57,11 @@
     :ret)
 
   (proc inc-at
-    :load-lb
     :first
+    :load-lb
     :push 1
     :add
+    :swap
     :store-lb
     :ret)
 

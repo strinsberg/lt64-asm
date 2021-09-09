@@ -59,7 +59,8 @@
      setup-bytes)
 
 (b/write-bytes "test/lt64_asm/binfile.test"
-                (asm test-prog))
+                (asm (files/get-program
+                     "test/lt64_asm/new_test.lta")))
 
 ;
 ),
