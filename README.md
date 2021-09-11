@@ -27,7 +27,8 @@ The assembler does it's best to catch some errors, but these are mostly syntacti
 
 # Assembly Programs
 
-**TODO:** Give some in-depth explanation of the sytax and available operations
+**TODO:** Give more in-depth explanation of the sytax and available operations
+than is given below
 
 ### Example
 
