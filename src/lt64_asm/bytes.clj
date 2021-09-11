@@ -10,10 +10,11 @@
 (def double-word-size 4)
 
 (declare op->bytes)
-(def initial-words
+(defn initial-words
   "Program start with a jump over the static data. At the start we don't know
   know where that is, so we use reserve space for a push and start address and
   add a jump"
+  []
   [(op->bytes :jump)
    (op->bytes :invalid)
    (op->bytes :invalid)])

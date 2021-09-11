@@ -1,9 +1,0 @@
-(lt64-asm
-  (static
-    (:str hello "Hello, World!\n"))  ;; store null terminated str labeled hello
-
-  (instruct
-    (:print-str hello)               ;; print string at hello
-    (:halt)))
-
-  ;; could also be (:push hello) (:print-str) (:halt)

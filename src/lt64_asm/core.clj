@@ -5,13 +5,36 @@
             [lt64-asm.program :as prog]
             [lt64-asm.files :as files]
             [clojure.edn :as edn]
+            [clojure.tools.cli :refer [parse-opts]]
             [clojure.java.io :as jio])
   (:gen-class))
 
+;;; Command Line Arg Parsing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def cli-opts
+  [["-o"
+    "--output-path FILE_PATH"
+    "Path to use for the assembled program"
+    :default "a.ltb"]
+   ["-h" "--help"]])
+
+(defn help-text
+  [text]
+  (println "Usage: java -jar lt64-asm.jar FILE [OPTIONS]\n")
+  (println "Assemble an lt64-asm program to run on the lieutenant-64 VM.")
+  (println "If no output path is provided the binary will be named a.ltb")
+  (println "A '.ltb' extension is not required, it is just added to make")
+  (println "identification of lt64 binaries easier.\n")
+  (println text)
+  (println "\nExamples:")
+  (println "  java -jar lt64-asm.jar <filename>")
+  (println "  java -jar lt64-asm.jar <filename> -o my_prog.ltb"))
+
+;;; Setup and Assemble A Program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def initial-prog-data
-  {:bytes b/initial-words
-   :counter (count b/initial-words)
-   :labels {}})
+  (let [words (b/initial-words)]
+    {:bytes words
+     :counter (count words)
+     :labels {}}))
 
 (defn setup-bytes
   [program-data]
@@ -29,7 +52,7 @@
          (concat start)
          b/->bytes)))
 
-(defn asm
+(defn assemble
   [file]
   (let [[static main & procs-and-includes] (files/lt64-program file)
         procs (files/expand procs-and-includes)]
@@ -39,11 +62,22 @@
          (prog/second-pass main procs)
          setup-bytes)))
 
+;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn -main
-  "I don't do a whole lot ... yet."
+  ""
   [& args]
-  (println "Hello, World!"))
+  (let [{:keys [options summary arguments errors]}
+        (parse-opts args cli-opts)]
+    (cond
+      errors (do (println "Errors:")
+                 (println (str "  " (clojure.string/join "\n  " errors)))
+                 (println "\nRun with --help for usage and examples"))
+      (:help options) (help-text summary)
+      (empty? arguments) (println "Error: No input file given")
+      :else (b/write-bytes (:output-path options)
+                            (assemble (files/get-program (first arguments)))))))
 
+;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
 (def test-prog (files/get-program "test/lt64_asm/new_test.lta"))
@@ -61,6 +95,7 @@
 (b/write-bytes "test/lt64_asm/binfile.test"
                 (asm (files/get-program
                      "test/lt64_asm/new_test.lta")))
+(-main "test/lt64_asm/new_test.lta")
 
 ;
 ),

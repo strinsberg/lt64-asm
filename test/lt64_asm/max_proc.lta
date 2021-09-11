@@ -1,0 +1,12 @@
+(lt64-asm-mod
+  ;; find max of two numbers on the stack
+  (proc max
+    :second
+    :second
+    :gt
+    :push max-second-larger
+    :branch
+    :swap
+    :label max-second-larger
+    :pop
+    :ret))

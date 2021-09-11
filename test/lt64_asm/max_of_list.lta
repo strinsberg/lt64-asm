@@ -1,6 +1,6 @@
 (lt64-asm-prog
   (static
-    (:word A 10 1 8 3 2 7 9 6 3 4 0)
+    (:word A 10 1 8 3 2 7 -2 6 3 4 0)
     (:word i 1 1))
 
   (main
@@ -44,18 +44,7 @@
     :prnch
     :halt)
 
-  ;; find max of two numbers on the stack
-  (proc max
-    :second
-    :second
-    :gt
-    :push second-larger
-    :branch
-    :swap
-    :label second-larger
-    :pop
-    :ret)
-
+  ;; Procedure to load an address on the stack increment and store it
   (proc inc-at
     :first
     :load-lb
@@ -65,6 +54,6 @@
     :store-lb
     :ret)
 
-  ;; include something for testing, but not important for the program
-  ;;(include "test/lt64_asm/test_mod1.lta")
+  ;; Import the max procedure
+  (include "test/lt64_asm/max_proc.lta")
 )
