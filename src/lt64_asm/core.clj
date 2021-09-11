@@ -21,8 +21,8 @@
   [text]
   (println "Usage: java -jar lt64-asm.jar FILE [OPTIONS]\n")
   (println "Assemble an lt64-asm program to run on the lieutenant-64 VM.")
-  (println "If no output path is provided the binary will be named a.ltb")
-  (println "A '.ltb' extension is not required, it is just added to make")
+  (println "If no output path is provided the binary will be named 'a.ltb'.")
+  (println "The '.ltb' extension is not required, it is only added to make")
   (println "identification of lt64 binaries easier.\n")
   (println text)
   (println "\nExamples:")
@@ -95,7 +95,8 @@
 (b/write-bytes "test/lt64_asm/binfile.test"
                 (asm (files/get-program
                      "test/lt64_asm/new_test.lta")))
-(-main "test/lt64_asm/new_test.lta")
+
+(-main "test/lt64_asm/new_test.lta" "-h" "max.ltb")
 
 ;
 ),
