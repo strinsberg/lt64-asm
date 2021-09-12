@@ -60,6 +60,23 @@
                (str "Error: Stack overflow while expanding includes. "
                     "Most likely there are circular dependencies."))))))
 
+;;; C file creation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn wrap-prog
+  [program-bytes]
+  (str "size_t prog_length() { return " (count program-bytes) ";  }\n"
+       "void set_program(WORD* mem, size_t length) {\n"
+       "  char program[] = { "
+       (clojure.string/join ", " program-bytes)
+       " };\n"
+       "  memcpy(mem, program, length);\n"
+       "}\n"))
+
+(defn create-standalone-cfile
+  [program-bytes path]
+  (spit path
+        (str (slurp "resources/lt64.c")
+             (wrap-prog program-bytes))))
+
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 

@@ -82,35 +82,6 @@ static inline WORDU string_length(WORD* mem, ADDRESS start) {
 }
 
 /// ltio.c ///////////////////////////////////////////////////////////////////
-size_t read_program(WORD* mem, const char* filename) {
-  // Open file
-  FILE* fptr = fopen(filename, "rb");
-  if (fptr == NULL) {
-    fprintf(stderr, "Error: Input file could not be open: %s\n", filename);
-    return 0;
-  }
-
-  // Find program size
-  fseek(fptr, 0, SEEK_END);
-  size_t length = (size_t) ftell(fptr);
-  if (length > (size_t) END_MEMORY) {
-    fprintf(stderr, "Error: Program will not fit in memory\n");
-    return 0;
-  }
-  rewind(fptr);
-
-  // Read the bytes of the program into memory
-  fread(mem, length, 1, fptr);
-  if (ferror(fptr)) {
-    fprintf(stderr, "Error: Input file was not read\n");
-    return 0;
-  }
-  fclose(fptr);
-
-  // Give back the number of words in the program
-  return length / sizeof(WORD);
-}
-
 void display_range(WORD* mem, ADDRESS start, ADDRESS end, bool debug) {
   for (ADDRESS i = start; i < end; i++) {
     if (debug)
@@ -891,6 +862,9 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
 }
 
 /// main.c ///////////////////////////////////////////////////////////////////
+size_t prog_length();
+void set_program(WORD* mem, size_t length);
+
 int main( int argc, char *argv[] ) {
   // VM memory pointers
   WORD* data_stack;
@@ -918,19 +892,16 @@ int main( int argc, char *argv[] ) {
     exit(EXIT_MEM);
   }
 
-  // Read the program file as bytes into memory
-  size_t length = 0;
-  if (TESTING) {
-    length = (ADDRESS)read_program(memory, TEST_FILE);
-  } else if (argc >= 2) {
-    length = (ADDRESS)read_program(memory, argv[1]);
-  } else {
-    fprintf(stderr, "Error: File name missing\n");
-    fprintf(stderr, "Usage: lt64 <input file name>\n");
-    exit(EXIT_ARGS);
+  // Load the program
+  size_t length = prog_length();
+  if (!length) {
+    fprintf(stderr, "Error: program length is 0\n");
+    exit(EXIT_FILE);
+  } else if ((length / 2) + 1 >= END_MEMORY) {
+    fprintf(stderr, "Error: program is to large to fit in memory\n");
+    exit(EXIT_MEM);
   }
-
-  if (!length) exit(EXIT_LEN);
+  set_program(memory, length);
 
   // Run program
   size_t result = execute(memory, length, data_stack, return_stack);
@@ -943,3 +914,21 @@ int main( int argc, char *argv[] ) {
   return result;
 }
 
+/** sample of what needs to be written for this to create a binary for a
+ * full program with vm and assembled bytes
+
+size_t prog_length() { return 6; }
+
+void set_program(WORD* mem, size_t length) {
+  char prog[] = {
+    1,
+    0,
+    100,
+    0,
+    69,
+    0
+  };
+  memcpy(mem, prog, length);
+};
+
+*/

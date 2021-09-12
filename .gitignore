@@ -19,3 +19,6 @@ pom.xml.asc
 .cpcache
 
 *.ltb
+*.out
+# only in the top level, there is lt64.c in resources
+*.c

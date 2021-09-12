@@ -6,6 +6,7 @@
             [lt64-asm.files :as files]
             [clojure.edn :as edn]
             [clojure.tools.cli :refer [parse-opts]]
+            [clojure.java.shell :refer [sh]]
             [clojure.java.io :as jio])
   (:gen-class))
 
@@ -15,6 +16,15 @@
     "--output-path FILE_PATH"
     "Path to use for the assembled program"
     :default "a.ltb"]
+   ["-c"
+    "--cfile OUTPUT_PATH"
+    (str "After assembly generates a standalone C file that can be compiled"
+         " to an executable that does not depend on the VM directly."
+         " Of course this is because the VM is included in the C file.\n"
+         "C file will be named with given path with a .c extension."
+         "I.e. -c some/path  ->  some/path.c\n"
+         "If no output path is given the file will be named a.c")
+    :default "a.c"]
    ["-h" "--help"]])
 
 (defn help-text
@@ -74,6 +84,9 @@
                  (println "\nRun with --help for usage and examples"))
       (:help options) (help-text summary)
       (empty? arguments) (println "Error: No input file given")
+      (:cfile options) (files/create-standalone-cfile
+                         (assemble (files/get-program (first arguments)))
+                         (:cfile options))
       :else (b/write-bytes (:output-path options)
                             (assemble (files/get-program (first arguments)))))))
 
@@ -96,7 +109,8 @@
                 (asm (files/get-program
                      "test/lt64_asm/new_test.lta")))
 
-(-main "test/lt64_asm/new_test.lta" "-h" "max.ltb")
+(-main "test/lt64_asm/max_of_list.lta" "-o" "max.ltb")
+(-main "test/lt64_asm/max_of_list.lta" "-c" "max.c")
 
 ;
 ),
