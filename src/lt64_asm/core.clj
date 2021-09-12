@@ -93,7 +93,7 @@
 ;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
-(def test-prog (files/get-program "test/lt64_asm/new_test.lta"))
+(def test-prog (files/get-program "test/lt64_asm/stopwatch.lta"))
 (identity test-prog)
 (first test-prog)
 (second test-prog)
@@ -102,8 +102,8 @@
 (->> initial-prog-data
      (stat/process-static (second test-prog))
      (prog/first-pass (nth test-prog 2) (drop 3 test-prog))
-     (prog/second-pass (nth test-prog 2) (drop 3 test-prog))
-     setup-bytes)
+     (prog/second-pass (nth test-prog 2) (drop 3 test-prog)))
+     ;setup-bytes)
 
 (b/write-bytes "test/lt64_asm/binfile.test"
                 (asm (files/get-program
@@ -111,6 +111,7 @@
 
 (-main "test/lt64_asm/max_of_list.lta" "-o" "max.ltb")
 (-main "test/lt64_asm/max_of_list.lta" "-c" "max.c")
+(-main "test/lt64_asm/stopwatch.lta" "-c" "stopwatch.c")
 
 ;
 ),

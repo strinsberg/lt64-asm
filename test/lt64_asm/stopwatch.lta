@@ -1,0 +1,104 @@
+(lt64-asm-prog
+  (static
+    (:word N 1)
+    (:str stlrun "still running"))
+
+  (main
+    ;; Read in the number of presses
+    :wread
+    :push N
+    :store-lb
+
+    ;; Get first number and set the current total time
+    ;; before each loop runs we will have stack [total, last-time, ->
+    :dread
+    :dpush 0
+    
+    ;; Push a loop counter to the return stack
+    ;; start at 2 cause we already got first time
+    :push 2
+    :rpush
+
+    ;; if N is 1 just jump to end
+    :push N
+    :load-lb
+    :push 1
+    :eq
+    :push finish-up
+    :branch
+
+    ;; For each press
+    :label loop
+    :dread
+
+    ;; If counter is even we are stopping the watch
+    :rgrab
+    :push 2
+    :mod
+    :push 1
+    :eq
+    :push started-only
+    :branch
+    :push stopped-watch
+    :call
+    :push finish-loop
+    :jump
+
+    ;; Increment loop counter and check if we should finish
+    :label started-only
+    :dswap
+    :drot
+    :dpop
+
+    :label finish-loop
+    :rpop
+    :push 1
+    :add
+    :first
+    :push N
+    :load-lb
+    :gt
+    :swap
+    :rpush
+    :push finish-up
+    :branch
+    :push loop
+    :jump
+
+    ;; Print total time and halt
+    :label finish-up
+    :rpop
+    :push 2
+    :mod
+    :push 1
+    :eq
+    :push print-time
+    :branch
+    :push stlrun
+    :prnmem-lb
+    :push end
+    :jump
+
+    :label print-time
+    :dprn
+
+    :label end
+    :push 10
+    :prnch
+    :halt
+  )
+
+  (proc stopped-watch
+    ;; Get the time stopped and sub the started time from it
+    :drot
+    :dsecond
+    :dswap
+    :dsub
+
+    ;; Move the total to the top and add it to the latest time run
+    :drot
+    :dadd
+
+    ;; Stack is again [time-stopped, total-run, ->
+    :ret)
+)

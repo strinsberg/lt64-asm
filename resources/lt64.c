@@ -673,9 +673,12 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
         printf("\n");
         break;
       case PRNMEM:
-        // Print from memory offset to first null
         atemp = data_stack[dsp--];
-        print_string(memory, fmp + atemp, END_MEMORY);
+        if (memory[pc] >> BYTE_SIZE & 1) {
+          print_string(memory, atemp, END_MEMORY);
+        } else {
+          print_string(memory, fmp + atemp, END_MEMORY);
+        }
         break;
 
       /// Reading ///

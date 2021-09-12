@@ -23,7 +23,7 @@
 
    :rpush          0x0a
    :rpop           0x0b
-   :rpull          0x0c
+   :rgrab          0x0c
 
    ;; Double Word Stack Manip
    :dpush          0x0d
@@ -41,7 +41,7 @@
 
    :drpush         0x16
    :drpop          0x17
-   :drpull         0x18
+   :drgrab         0x18
 
    ;; Word Arithmetic
    :add            0x19
@@ -121,6 +121,7 @@
    :prnln           0x4d
    :prnsp-unused    0x4e
    :prnmem          0x4f
+   :prnmem-lb       0x014f
 
    ;;; Read
    :wread           0x50

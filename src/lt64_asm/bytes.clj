@@ -45,7 +45,8 @@
     :fword (flip-dword-bytes
              (get-bytes (nums/num->fixed-point number (:scale args))
                         double-word-size))
-    nil))
+    (throw (Exception.
+             (str "Error: Invalid number type for num->bytes: " args)))))
 
 (defn pad
   [value times seq_]

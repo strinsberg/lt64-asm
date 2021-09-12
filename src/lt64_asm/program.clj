@@ -7,10 +7,18 @@
 ;;; First Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-label-from-ops
   [{:keys [ops counter labels]}]
-  (if (sym/label? (first ops))
+  (cond
+    (sym/label? (first ops))
     {:ops (drop 2 ops)
      :labels (sym/set-label (second ops) counter labels)
      :counter counter}
+
+    (contains? #{:dpush :fpush} (first ops))
+    {:ops (drop 2 ops)
+     :labels labels
+     :counter (+ 3 counter)}
+
+    :else
     {:ops (rest ops)
      :labels labels
      :counter (inc counter)})) 
@@ -55,15 +63,15 @@
 ;;; Second Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn replace-push
   [[op value] program-data]
-  (let [out-op (if (= op :fpush) :dword op)
-        num-data (case op
+  (let [out-op (if (= op :fpush) :dpush op)
+        num-type (case op
                    :push :word
                    :dpush :dword
                    :fpush :fword
                    :word)]
     (->> (:bytes program-data)
          (cons (b/op->bytes out-op))
-         (cons (b/num->bytes value num-data))
+         (cons (b/num->bytes value {:kind num-type}))
          (assoc program-data :bytes))))
 
 (defn replace-label
@@ -108,7 +116,7 @@
       (empty? ops) program-data
 
       (contains? #{:push :dpush :fpush} op)
-      (recur (drop 2 ops) (replace-wnum (take 2 ops) program-data))
+      (recur (drop 2 ops) (replace-push (take 2 ops) program-data))
 
       (keyword? op)
       (recur (rest ops) (replace-op op program-data))
@@ -231,9 +239,9 @@
 ;   inc-addr 48}}
 
 ;;; Second Pass Tests
-(replace-wnum '(:push 0xaa) test-prog-data)
-(replace-dnum '(:dpush 0x00bbccdd) test-prog-data)
-(replace-fnum '(:fpush 10.123) test-prog-data)
+(replace-push '(:push 0xaa) test-prog-data)
+(replace-push '(:dpush 0x00bbccdd) test-prog-data)
+(replace-push '(:fpush 10.123) test-prog-data)
 (replace-op :branch test-prog-data)
 (replace-label 'i test-prog-data)
 
