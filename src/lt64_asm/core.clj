@@ -115,15 +115,14 @@
 (second test-prog)
 (nth test-prog 2)
 
+(def procs (files/expand (drop 3 test-prog)))
 (->> initial-prog-data
      (stat/process-static (second test-prog))
-     (prog/first-pass (nth test-prog 2) (drop 3 test-prog))
-     (prog/second-pass (nth test-prog 2) (drop 3 test-prog))
+     (prog/first-pass (nth test-prog 2) procs)
+     (prog/second-pass (nth test-prog 2) procs)
      setup-bytes)
 
-(b/write-bytes "test/lt64_asm/binfile.test"
-                (asm (files/get-program
-                     "test/lt64_asm/new_test.lta")))
+(assemble test-prog)
 
 (-main "test/lt64_asm/max_of_list.lta" "-o" "max.ltb")
 (-main "test/lt64_asm/max_of_list.lta" "-c" "max.c")

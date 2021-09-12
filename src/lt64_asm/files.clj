@@ -1,6 +1,7 @@
 (ns lt64-asm.files
   (:require 
     [lt64-asm.symbols :as sym]
+    [lt64-asm.stdlib :as stdlib]
     [clojure.edn :as edn]))
 
 ;; Load ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,16 +49,26 @@
 ;; Include and expand proc section ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (declare expand)
 
+(defn include-stdlib
+  "Include selected subroutines from the stdlib.
+  Throws if any of the given subroutine names are present."
+  [procs]
+  (if (empty? procs)
+    (stdlib/include-all)
+    (stdlib/include-procs procs)))
+
 (defn include
   "Loads and expands the file in an include directive.
   The expansion may load and expand submodules in the included file.
   Throws if the file is cannot be processed or is not a valid lt64-asm module."
-  [[_ filename]]
-  (trampoline
-    expand
-    (->> filename
-         get-program
-         lt64-module)))
+  [[_ filename & procs]]
+  (if (= filename "stdlib")
+    (include-stdlib procs)
+    (trampoline
+      expand
+      (->> filename
+           get-program
+           lt64-module))))
 
 (defn expand
   "Given a list of subroutine and include directives returns them all as a
@@ -105,8 +116,11 @@
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
-(get-program "test/lt64_asm/new_test.lta")
-(include '(include "test/lt64_asm/test_mod1.lta"))
+(get-program "test/lt64_asm/max_of_list.lta")
+(include '(include "test/lt64_asm/max_proc.lta"))
+(include '(include "stdlib" even?))
+(include '(include "stdlib" even))
+(include '(include "stdlib"))
 
 ;
 ),

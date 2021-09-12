@@ -6,8 +6,7 @@
   (main
     ;; Read in the number of presses
     :wread
-    :push N
-    :store-lb
+    :push N :store-lb
 
     ;; Get first number and set the current total time
     ;; before each loop runs we will have stack [total, last-time, ->
@@ -20,12 +19,10 @@
     :rpush
 
     ;; if N is 1 just jump to end
-    :push N
-    :load-lb
+    :push N :load-lb
     :push 1
     :eq
-    :push finish-up
-    :branch
+    :push finish-up :branch
 
     ;; For each press
     :label loop
@@ -33,16 +30,10 @@
 
     ;; If counter is even we are stopping the watch
     :rgrab
-    :push 2
-    :mod
-    :push 1
-    :eq
-    :push started-only
-    :branch
-    :push stopped-watch
-    :call
-    :push finish-loop
-    :jump
+    :push std/odd? :call
+    :push started-only :branch
+    :push stopped-watch :call
+    :push finish-loop :jump
 
     ;; Increment loop counter and check if we should finish
     :label started-only
@@ -55,29 +46,20 @@
     :push 1
     :add
     :first
-    :push N
-    :load-lb
+    :push N :load-lb
     :gt
     :swap
     :rpush
-    :push finish-up
-    :branch
-    :push loop
-    :jump
+    :push finish-up :branch
+    :push loop :jump
 
     ;; Print total time and halt
     :label finish-up
     :rpop
-    :push 2
-    :mod
-    :push 1
-    :eq
-    :push print-time
-    :branch
-    :push stlrun
-    :prnmem-lb
-    :push end
-    :jump
+    :push std/odd? :call
+    :push print-time :branch
+    :push stlrun :prnmem-lb
+    :push end :jump
 
     :label print-time
     :dprn
@@ -101,4 +83,6 @@
 
     ;; Stack is again [time-stopped, total-run, ->
     :ret)
+
+  (include "stdlib" odd?)
 )
