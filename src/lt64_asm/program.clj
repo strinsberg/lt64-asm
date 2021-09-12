@@ -13,7 +13,7 @@
      :labels (sym/set-label (second ops) counter labels)
      :counter counter}
 
-    (contains? #{:dpush :fpush} (first ops))
+    (sym/dpush-op? (first ops))
     {:ops (drop 2 ops)
      :labels labels
      :counter (+ 3 counter)}

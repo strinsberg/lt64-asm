@@ -148,6 +148,9 @@
    :fmultsc        0x62
    :fdivsc         0x63
 
+   ;; Late additions
+   :prnpk          0x64
+
    ;; Pseudo ops that will be replaced or signal an error
    :fpush          0xff
    :invalid        0xff})
@@ -181,9 +184,14 @@
   [proc]
   (= (first proc) 'proc))
 
+(defn dpush-op?
+  [op]
+  (contains? #{:dpush :fpush} op))
+
 (defn push-op?
   [op]
-  (contains? #{:push :dpush :fpush} op))
+  (or (= op :push)
+      (dpush-op? op)))
 
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
