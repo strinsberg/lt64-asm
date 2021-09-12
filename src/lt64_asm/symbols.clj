@@ -2,8 +2,9 @@
   (:require [clojure.java.io :as jio]))
 
 ;; Symbols and op codes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def CR 0x0A)
+(def CR 0x0A)  ;; Ascii value for linefeed
 
+;; Map of op keywords to their hex code equivilent used by the VM
 (def symbol-map
   {:halt           0x00
 
@@ -157,50 +158,68 @@
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-prog?
+  "Checks if a list is a valid lt64 assembly program."
   [file]
   (= (first file) 'lt64-asm-prog))
 
 (defn lt64-mod?
+  "Checks if a list is a valid lt64 assembly subroutine module"
   [file]
   (= (first file) 'lt64-asm-mod))
 
 (defn static?
+  "Checks if a list is the static protion of an lt64 assembly program."
   [instr]
   (= (first instr) 'static))
 
 (defn main?
+  "Checks if a list is the main protion of an lt64 assembly program."
   [instr]
   (= (first instr) 'main))
 
 (defn include?
+  "Checks if a list is an include directive of an lt64 assembly program."
   [instr]
   (= (first instr) 'include))
 
-(defn label?
-  [op]
-  (= :label op))
-
 (defn proc?
+  "Checks if a list is a subroutine directive of an lt64 assembly program."
   [proc]
   (= (first proc) 'proc))
 
+(defn label?
+  "Checks if an op is a label op symbol"
+  [op]
+  (= :label op))
+
 (defn dpush-op?
+  "Checks if an op is one that will push a double word.
+  I.e. has a double word argument following it in the instruction list."
   [op]
   (contains? #{:dpush :fpush} op))
 
 (defn push-op?
+  "Checks if an op is one that will push an following argument."
   [op]
   (or (= op :push)
       (dpush-op? op)))
 
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
+  "Sets a label in a given label map with the given value.
+  Throws an Exception if the label already exist in the map. The main
+  purpose for this function is to wrap associations for the label pass
+  of assembly so that they will not allow duplicate label declarations."
   [label value labels]
   (if (get labels label)
     (throw (Exception. (str "Error: label has already been declared: " label)))
     (assoc labels label value)))
 
 (defn get-label
+  "Gets the associate value for label in a given label map.
+  Throws an Exception if the label is not in the map. The main
+  purpose for this function is to wrap map get for the label pass
+  of assembly so that missing labels cannot be referenced in a program."
   [label labels]
   (if-let [value (get labels label)]
     value
@@ -208,11 +227,12 @@
       (Exception. (str "Error: Label has not been declared: " label)))))
 
 (defn op->code
-  [key_]
-  (if-let [op (key_ symbol-map)]
-    op
+  "Given an op symbol returns the associated op code from the symbol-map."
+  [op]
+  (if-let [code (op symbol-map)]
+    code
     (throw (Exception.
-             (str "Error: Invalid operation: " key_)))))
+             (str "Error: Invalid operation: " op)))))
 
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment

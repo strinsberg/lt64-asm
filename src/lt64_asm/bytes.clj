@@ -5,9 +5,9 @@
     [clojure.java.io :as jio]))
 
 ;;; Constants ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(def byte-bits 8)
-(def word-size 2)
-(def double-word-size 4)
+(def byte-bits 8)         ;; The number of BITS in a byte
+(def word-size 2)         ;; The number of BYTES in a word
+(def double-word-size 4)  ;; The number of BYTES in a double word
 
 (declare op->bytes)
 (defn initial-words
@@ -21,7 +21,8 @@
 
 ;;; Byte Manipulation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-bytes
-  "list of bytes from high byte to low byte"
+  "Returns a list of the bytes in a given number from high to low.
+  I.e. 0xaabb -> (0xaa 0xbb). Note this returns actual numbers and not hex."
   [number num-bytes]
   (loop [x number
          n num-bytes
@@ -33,10 +34,24 @@
              (cons (bit-and x 0xff) res)))))
 
 (defn flip-dword-bytes
+  "Flips the bytes of a dword so that they will be in the right order when
+  reversed.
+  I.e. The VM expects 'cc dd  bb aa' for a double word. The bytes given from
+  most byte functions are reversed. For double words 0xddccbbaa would be
+  returned as (dd cc bb aa). To order them properly before they are revesered
+  the must be (bb aa dd cc) so that reversed they are (cc dd aa bb) as
+  expected by the vm."
   [dword]
   (concat (drop 2 dword) (take 2 dword)))
 
 (defn num->bytes
+  "Given a number returns the bytes of that number in reverse order of what
+  the vm expects.
+  Takes an argument map with :kind the type of number and :scale for the
+  scaling factor for fixed point numbers (i.e. 1000 for 3 significant digits).
+  Reverse order for words in high to low byte. For double and fixed point
+  it is as returned by flip-dword-bytes.
+  Throws an Exception if the :kind is invlaid."
   [number args]
   (case (:kind args)
     :word (get-bytes (nums/num->word number) word-size)
@@ -49,6 +64,8 @@
              (str "Error: Invalid number type for num->bytes: " args)))))
 
 (defn pad
+  "Given a sequence of bytes cons the given value onto it the given number
+  of times."
   [value times seq_]
   (loop [i times
          s seq_]
@@ -56,9 +73,16 @@
       s
       (recur (dec i) (cons value s)))))
 
+;; Pad a sequence with n zeros
 (def pad-zero (partial pad 0x00))
 
 (defn adjust
+  "Adjusts the size of a given collection from its expected length to a new
+  length, and pads with zeros if the new length is greater.
+  So if a collection is larger than the new length it will have elements from
+  the front dropped. If it is smaller it will have zeros added to the front.
+  Length is passed so that the collection does not have to be counted. If this
+  length does not match the collection size the result is undefined."
   [new-len len col]
   (cond
     (< new-len len) (drop (- len new-len) col)
@@ -66,16 +90,21 @@
     :else col))
 
 (defn op->bytes
+  "Given an op symbol will return a list of the bytes that represent its
+  op code. These bytes will be reverse of what the vm expects."
   [op]
   (num->bytes (sym/op->code op) {:kind :word}))
 
-(def WORD unchecked-byte)
-
 (defn ->bytes
+  "Turn a sequence of numbers representing bytes to an actual byte array.
+  If numbers in the byte-seq are to large or small they will wrap around
+  to fit in a byte."
   [byte-seq]
-  (byte-array (map WORD byte-seq)))
+  (byte-array (map unchecked-byte byte-seq)))
 
 (defn write-bytes
+  "Given a filename and a byte array from ->bytes writes the bytes to the
+  file as binary data."
   [filename bytes_]
     (with-open [out (jio/output-stream (jio/file filename))]
       (.write out bytes_)))

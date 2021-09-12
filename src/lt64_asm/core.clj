@@ -28,6 +28,7 @@
    ["-h" "--help"]])
 
 (defn help-text
+  "Prints command line help text to stdout."
   [text]
   (println "Usage: java -jar lt64-asm.jar FILE [OPTIONS]\n")
   (println "Assemble an lt64-asm program to run on the lieutenant-64 VM.")
@@ -40,6 +41,9 @@
   (println "  java -jar lt64-asm.jar <filename> -o my_prog.ltb"))
 
 ;;; Setup and Assemble A Program ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Setup the initial program data with the instructions that are placed
+;; before the static data
 (def initial-prog-data
   (let [words (b/initial-words)]
     {:bytes words
@@ -47,6 +51,12 @@
      :labels {}}))
 
 (defn setup-bytes
+  "Given program data returns the bytes as a byte array in the correct order
+  and format for the VM.
+  This reverses and flattens the bytes returned from all the byte functions
+  to get them in the right order. It also sets up the address for the initial
+  jump to get past the static data and combines all bytes together. Finally
+  returning them as a byte array."
   [program-data]
   (let [start (reverse
                 (concat
@@ -63,6 +73,8 @@
          b/->bytes)))
 
 (defn assemble
+  "Given a list representing an lt64-asm program return the assembled
+  byte array."
   [file]
   (let [[static main & procs-and-includes] (files/lt64-program file)
         procs (files/expand procs-and-includes)]
@@ -74,7 +86,11 @@
 
 ;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn -main
-  ""
+  "Process command line arguments and assemble the file given as the first
+  argument.
+  Produces either a binary file that can be run on the VM or a C file
+  containing the VM and the assembled program as binary data. The C file
+  can be compiled and run as a standalone program."
   [& args]
   (let [{:keys [options summary arguments errors]}
         (parse-opts args cli-opts)]
@@ -102,8 +118,8 @@
 (->> initial-prog-data
      (stat/process-static (second test-prog))
      (prog/first-pass (nth test-prog 2) (drop 3 test-prog))
-     (prog/second-pass (nth test-prog 2) (drop 3 test-prog)))
-     ;setup-bytes)
+     (prog/second-pass (nth test-prog 2) (drop 3 test-prog))
+     setup-bytes)
 
 (b/write-bytes "test/lt64_asm/binfile.test"
                 (asm (files/get-program

@@ -6,6 +6,14 @@
 
 ;;; Allocation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn alloc->nums
+  "Creates a list of bytes large enough to hold the bytes for the number of
+  elements desired.
+  The total bytes is num-elements * elem-size. The byte args are those
+  required to convert a number to bytes, most likely {:kind <wordtype>}.
+  The args are a list of values to store from the beginning of the
+  allocated list. If the args are too short, or there are none, the remaining
+  memory will be 0s. If there are too many args extras will be discarded.
+  Retruns the bytes in reverse order to what the VM will read."
   [num-elems elem-size byte-args args]
   (b/adjust
     (* num-elems elem-size)
@@ -15,6 +23,14 @@
 
 ;; Allocate methods
 (defmulti allocate
+  "Allocate a list of bytes for the static instruction.
+  Switches on the type of the instruction to give the right data size.
+  All data will be zeroed where default arguments have not been provided.
+  If the list of arguments is too long then extra elements will be discarded.
+  For :str and :char the final byte or word will be zeroed to null terminate
+  it like a C string. The size of :str depends on the string given + the
+  space for null terminating. All character based memory is sized to the number
+  of words needed to fit packed characters (2 per word)."
   (fn [static-instr]
     (first static-instr)))
 
@@ -83,6 +99,11 @@
 
 ;;; Static Processing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn process-all
+  "Given a list of allocation instructions add the allocated byte lists to the
+  :bytes field of the given program-data and return it.
+  The resulting bytes will be in reverse order from how they were declared.
+  The program counter will also be updated to the position right after the
+  last static allocated word."
   [instructions program-data]
   (if (empty? instructions)
     program-data
@@ -95,11 +116,15 @@
               :counter (+ counter (:words instr-data))}))))
 
 (defn set-prog-start
+  "Set the starting address to the current counter value of program-data
+  and return the updated data."
   [program-data]
   (assoc program-data
          :start-address (:counter program-data)))
 
 (defn process-static
+  "Process the static portion of a program and return updated program data
+  with the static bytes and updated program counter."
   [static program-data]
   (set-prog-start
     (process-all (rest static) program-data)))

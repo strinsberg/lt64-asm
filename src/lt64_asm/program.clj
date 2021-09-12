@@ -6,6 +6,10 @@
 
 ;;; First Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn get-label-from-ops
+  "Given first pass program data records any labels with the current
+  counter value or increments the counter according to the op.
+  Returns a new map which updates labels, drops the op and any arguments,
+  and updates the counter."
   [{:keys [ops counter labels]}]
   (cond
     (sym/label? (first ops))
@@ -24,6 +28,9 @@
      :counter (inc counter)})) 
 
 (defn get-op-labels
+  "Given a list of ops and program data processes the ops for labels and
+  returns updated program data with new labels added and the counter
+  increased to the position after the final op."
   [ops program-data]
   (loop [args {:ops ops
                :labels (:labels program-data)
@@ -35,6 +42,9 @@
       (recur (get-label-from-ops args)))))
 
 (defn proc-label-accumulator
+  "Accumulator for reducing subroutines to find their labels.
+  Takes program data and a subroutine directive and returns updated program
+  data after processing the subroutine with get-op-labels."
   [program-data proc]
    (if (sym/proc? proc)
      (get-op-labels
@@ -49,12 +59,17 @@
                    proc)))))
   
 (defn get-proc-labels
+  "Get label data for a list of subroutine directives and return updated
+  program data."
   [procs program-data]
   (reduce proc-label-accumulator
           program-data
           procs))
 
 (defn first-pass
+  "Process all labels in the main program and all subroutine directives.
+  Returns the updated program data with all all labels and accociated
+  addresses along with a the counter pointing past the final instruction."
   [main procs program-data]
   (->> program-data
        (get-op-labels (rest main))
@@ -62,6 +77,8 @@
 
 ;;; Second Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn replace-push
+  "Replace a push op and its value with byte lists and cons them onto the
+  :bytes member of program data and return it."
   [[op value] program-data]
   (let [out-op (if (= op :fpush) :dpush op)
         num-type (case op
@@ -74,21 +91,20 @@
          (cons (b/num->bytes value {:kind num-type}))
          (assoc program-data :bytes))))
 
-(defn replace-label
-  [op program-data]
-  (->> (:bytes program-data)
-       (cons (b/num->bytes
-               (sym/get-label op (:labels program-data))
-               {:kind :word}))
-       (assoc program-data :bytes)))
-
 (defn replace-op
+  "Replace an op symbol with the byte of its associated address and cons it
+  onto :bytes member of program data and return it."
   [op program-data]
   (->> (:bytes program-data)
        (cons (b/op->bytes op))
        (assoc program-data :bytes)))
 
 (defn replace-labels
+  "Filters all labels declarations out of a list of program operations and
+  replaces any used labels with their numeric addres value.
+  Since the only place labels are used is with push ops to push the address
+  onto the stack the numbers will get converted to bytes in the replace-ops
+  pass from replace-push-op."
   [ops program-data]
   (cond
     (empty? ops) '()
@@ -110,6 +126,8 @@
         (replace-labels (rest ops) program-data)))))
 
 (defn replace-ops
+  "Cons the bytes for each op symbol given onto the :bytes member of
+  program-data and return it."
   [ops program-data]
   (let [op (first ops)]
     (cond
@@ -125,6 +143,8 @@
               (Exception. (str "Error: Invalid operation: " op))))))
 
 (defn second-pass
+  "Replace all labels and op symbols with their bytes and cons them onto the
+  :bytes member of program-data. Return the updated program data."
   [main procs program-data]
   (reduce #(-> (drop 2 %2)
                (replace-labels program-data)
@@ -243,7 +263,6 @@
 (replace-push '(:dpush 0x00bbccdd) test-prog-data)
 (replace-push '(:fpush 10.123) test-prog-data)
 (replace-op :branch test-prog-data)
-(replace-label 'i test-prog-data)
 
 (rest test-main)
 (def main-replaced-labels
