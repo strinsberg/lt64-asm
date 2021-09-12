@@ -4,6 +4,18 @@ Assembler for the [lieutenant-64](https://github.com/strinsberg/lieutenant-64) v
 
 **NOTE**: Currently there are no formal tests. All functions have been tested in the REPL with code in a comment block at the end of each module file. This goes a long way, but I am not sure it can guarantee there are not still a few significant errors. There is also a test program and subroutine module in the test folders. These have been assembled and run on the current version of the VM and performed as expected. However, they only test a subset of the VM operations.
 
+**NOTE**: Some bugs were found relating to using double words. The ones I found
+have been fixed, but there may be others. The pre-relese jar file does not have these
+fixes, so it will not handle code that uses `:dpush` and `:fpush` properly. Also,
+I noted that some operations other than `:load-lb` and `:store-lb` need equivilent
+versions. For example `:prnmem` which will most often be used to print a string
+literal stored in static memory. The version in the pre-release does not handle
+this case and is kind of useless, especially because the memory copy ops
+also do not handle it, so there is basically no way clean way to print a string
+from anywhere other than the buffer. And you can only get strings in the buffer it
+you read them in, which is not ideal. `:prnmem-lb` has been added to master branch
+and used in the latest test program, but the others have not been updated.
+
 # Purpose
 
 The purpose of this assembler is to allow creation of programs for the lieutenant-64 virtual machine. Without it programs would have to be written in hex code in a hex editor or equivalent. Low level programming can be difficult enough without having to use hex code for programming.
@@ -173,4 +185,22 @@ included in the above program example.
     :pop
     :ret))
 ```
+
+# Producing A Standalone Program
+
+*Not in the pre-release*
+
+It is possible with the latest version to use the `-c` flag with the
+assembler. This will package the VM and the assembled program up into a single
+C file. This C file can be compiled with a C compiler and the resulting
+executable no longer has to be run directly by the VM. It is of course still
+run on the VM, just internally.
+
+This is mildly useful for a project like this if you wanted to make a tool and
+not have to run it with the VM everytime. The main reason I did it was to use
+contest programming problems to test it out and have some fun with. If I
+assemble it into one big program I can submit it as a C file and it will run.
+Again this is only for fun, as it is very tedious to write even the simplest
+program in assembly, and even more tedious to debug it when I make even the
+smallest mistake.
 
