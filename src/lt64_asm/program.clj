@@ -115,7 +115,7 @@
     (cond
       (empty? ops) program-data
 
-      (contains? #{:push :dpush :fpush} op)
+      (sym/push-op? op)
       (recur (drop 2 ops) (replace-push (take 2 ops) program-data))
 
       (keyword? op)

@@ -61,7 +61,6 @@
    :gtu            0x25
 
    ;;; Word Bit Ops
-   ; TODO compound versions of shift
    :sl             0x26
    :sr             0x27
    :and            0x28
@@ -86,7 +85,6 @@
    :dgtu            0x37
 
    ;;; Double Word Bit Ops
-   ; TODO compound versions of shift
    :dsl             0x38
    :dsr             0x39
    :dand            0x3a
@@ -94,14 +92,12 @@
    :dnot            0x3c
 
    ;;; Movement
-   ; TODO compound versions of jump and branch
    :jump            0x3d
    :branch          0x3e
    :call            0x3f
    :ret             0x40
 
    ;;; Addresses
-   ; TODO compound versions of jump and branch
    :dsp             0x41
    :pc              0x42
    :bfp             0x43
@@ -113,7 +109,6 @@
    :wprnu           0x47
    :dprnu           0x48
    :fprn            0x49
-   ; TODO compund verion
    :fprnsc          0x4a
 
    :prnch           0x4b
@@ -127,7 +122,6 @@
    :wread           0x50
    :dread           0x51
    :fread           0x52
-   ; TODO compund version
    :freadsc         0x53
    :readch          0x54
    :read-unused     0x55
@@ -135,7 +129,6 @@
    :readsp-unused   0x57
 
    ;;; Buffer and Chars
-   ; TODO compund versions of buf load and store
    :bufload        0x58
    :bufstore       0x59
    :high           0x5a
@@ -188,13 +181,9 @@
   [proc]
   (= (first proc) 'proc))
 
-(defn wnum-op?
+(defn push-op?
   [op]
-  (contains? #{:push} op))
-
-(defn dnum-op?
-  [op]
-  (contains? #{:dpush} op))
+  (contains? #{:push :dpush :fpush} op))
 
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
@@ -229,5 +218,4 @@
 
 (label? :label)
 (label? :push)
-
 ),
