@@ -53,26 +53,18 @@
        (get-proc-labels procs)))
 
 ;;; Second Pass ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn replace-wnum
+(defn replace-push
   [[op value] program-data]
-  (->> (:bytes program-data)
-       (cons (b/op->bytes op))
-       (cons (b/num->bytes value {:kind :word}))
-       (assoc program-data :bytes)))
-
-(defn replace-dnum
-  [[op value] program-data]
-  (->> (:bytes program-data)
-       (cons (b/op->bytes op))
-       (cons (b/num->bytes value {:kind :dword}))
-       (assoc program-data :bytes)))
-
-(defn replace-fnum
-  [[op value] program-data]
-  (->> (:bytes program-data)
-       (cons (b/op->bytes :dpush))
-       (cons (b/num->bytes value {:kind :fword}))
-       (assoc program-data :bytes)))
+  (let [out-op (if (= op :fpush) :dword op)
+        num-data (case op
+                   :push :word
+                   :dpush :dword
+                   :fpush :fword
+                   :word)]
+    (->> (:bytes program-data)
+         (cons (b/op->bytes out-op))
+         (cons (b/num->bytes value num-data))
+         (assoc program-data :bytes))))
 
 (defn replace-label
   [op program-data]
@@ -114,10 +106,13 @@
   (let [op (first ops)]
     (cond
       (empty? ops) program-data
-      (sym/wnum-op? op) (recur (drop 2 ops) (replace-wnum (take 2 ops) program-data))
-      (sym/dnum-op? op) (recur (drop 2 ops) (replace-dnum (take 2 ops) program-data))
-      (= :fpush op) (recur (drop 2 ops) (replace-fnum (take 2 ops) program-data))
-      (keyword? op) (recur (rest ops) (replace-op op program-data))
+
+      (contains? #{:push :dpush :fpush} op)
+      (recur (drop 2 ops) (replace-wnum (take 2 ops) program-data))
+
+      (keyword? op)
+      (recur (rest ops) (replace-op op program-data))
+
       :else (throw
               (Exception. (str "Error: Invalid operation: " op))))))
 
