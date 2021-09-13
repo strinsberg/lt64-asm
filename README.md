@@ -14,7 +14,7 @@ If nothing else it is just Fun!
 
 # Usage
 
-The standalone jar for the program can be downloaded from the release page. This should work on any computer with a JVM.
+The standalone jar for the program can be downloaded from the release page. This should work on any computer with a JVM. Note that the jar has a bit of a startup wait for the JVM. The actual compilation of small programs is fast, but the startup is slow.
 
 The following command will assemble a correct lt64-asm file into a binary that can run on the VM. The `-o` flag gives the output name of the binary. If it is not provided the file will be named `a.ltb`.
 ```

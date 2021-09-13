@@ -127,6 +127,7 @@
 (-main "test/lt64_asm/max_of_list.lta" "-o" "max.ltb")
 (-main "test/lt64_asm/max_of_list.lta" "-c" "max.c")
 (-main "test/lt64_asm/stopwatch.lta" "-c" "stopwatch.c")
+(-main "test/lt64_asm/coldputer.lta" "-c" "coldputer.c")
 
 ;
 ),

@@ -1,0 +1,40 @@
+(lt64-asm-prog
+  (static
+    (:dword n 1))  
+
+  (main
+    :dread
+    :push n :dstore-lb
+
+    :dpush 0
+    :dpush 0
+    
+    :label loop
+    :dread
+    :dpush -1
+    :dgt
+    :swap
+    :pop
+    :push not-neg :branch
+    :dpush 1
+    :dadd
+
+    :label not-neg
+    :dsecond
+    :dpush 1
+    :dadd
+    :drot
+    :dpop
+    :dswap
+
+    :dsecond
+    :push n :dload-lb
+    :dlt
+    :swap
+    :pop
+    :push loop :branch
+
+    :dprn
+    :push 10 :prnch
+    :halt)
+)
