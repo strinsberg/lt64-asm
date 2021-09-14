@@ -120,6 +120,16 @@ it will access the address given directly. It can be thought of as **load-label*
 Also, in the module example below `:second` is used for **sec** and for **fst**
 `:first` would be used.
 
+### Label Naming Conventions
+
+Lables can be used to set labels for static data, program addresses, and
+procedure names. They can include almost any characters except for the
+following: `#, ', :, ;`. It is also not possible to start them with a number.
+```
+Valid: hello mod/subroutine +-2-83!_
+Invalid: :hello help:me 'hello help;me 34apples
+```
+
 ### Program Organization
 
 The program must be organized as in the example. The whole program must be
@@ -182,14 +192,36 @@ included in the above program example.
     :ret))
 ```
 
-### Standard Library
+# Subroutines and Macros
 
-Instead of adding pseudo instructions I decided to add a collection of
-standard library procedures that can be included into any program. Currently,
-these only include `even?` and `odd?` to test it out. Both take a word from
-the top of the stack and put a `1` or `0` as the result.
+## User Defined Subroutines
 
-To include these procedures one can either include the whole stdlib
+As mentioned above it is possible to define subroutines in a program or a module.
+These subroutines can be called by pushing their name and using the **call** op.
+```
+:push sub-name :call
+```
+Any sbroutine definition **must** include `:ret` to ensure it returns to the next
+instruction after the call.
+
+Subroutine names should be plain-text like other labels and should not be started
+with a colon `:`. Colons are reserved for the beginning of operations only.
+
+The use of these subroutines is to allow larger groups of instructions to be
+collected and reused. They can include labels and calls to other
+other subroutines. Pretty much anything that can be done in the main section
+can also be done in a subroutine definition.
+
+The main problem with subroutines is that they are not efficient to replace
+small groups of instructions. The subroutine call takes `3` instructions and
+another one for the return. This means replacing `3` or fewer elements
+(instructions and literals) will add to the program length and add some extra
+indirection. Subroutine calls are very cheap because no register saving or
+argument passing is needed, but are still not ideal for really small replacements.
+For small replacements macros can be used.
+
+A collection of standard library subroutines exists that can be included into
+any program. To include these procedures one can either include the whole stdlib
 `(include "stdlib")` or give names of the subroutines to include
 `(include "stdlib" odd? even?)`. If names that are not in the stdlib are given
 an error will be thrown.
@@ -198,4 +230,54 @@ When referencing standard library labels it is necessary to prefix them with
 `std/`. For example `:push std/odd? :call`. This prefix should not be added to
 the include list, but this is how they are labeled in the stdlib module. The
 prefixes are to help prevent name clashes.
+
+## Macros
+
+Macos are a way to create a new operation that contains multiple elements. They
+allow a simpler syntax than subroutines and can improve readability and reduce
+typing. However, unlike subroutines macros are replaced by their bodies. This
+means that if they are longer than `3` elements their use will increase program
+size. This may be desireable in certain cases as they are much nicer to
+read and use compared to the call for a subroutine, but most often if a macro
+will be used a lot and is `4` or more elments long it should be a subroutine.
+
+There are various builtin macros that are designed to make up for missing
+operations in the VM or to make some common operations more readable and
+reduce typing time.
+
+Macros are expected to be named like operations, but with a `!` following the
+colon. I.e. `:!inc`. This is how all builin macros will be named and should
+be followed by user macros. Similar to subroutines, it is desirable in modules
+that macros are named with the module name before the macro name.
+I.e. `:!my-mod/macro`. This is not enforced, but is good practice to avoid
+naming clashes. It should also be noted that user macros are always checked
+before builtin macros, and so declaring a user macro with the same name as a
+builtin macro will shadow it. This is by design and builtin macros do not have
+a prefix other than adding the `!`. The purpose of the `!` is so that it is
+clear that an operation is a macro and not a direct VM operation. As these are
+added by the assembler to make programs a little simpler and to make up for
+some simple but missing ops from the VM they are meant to look almost exactly
+like normal operations.
+
+Macros also have the disadvantage of not being able to contain labels or call
+subroutines. This is because of when in the assembly process their elements are
+processed and added to the byte code. The macros are stripped from the proc and
+include section before labels are processed, and then macro ops are assembled
+at the same time as other ops, after labels have been replaced. This prevents
+them from being used for complex sets of instructions, but as their purpose is
+only to replace small collections of operations these limitations are intentional.
+
+
+## Builtin Subroutines and Macros
+
+### Stdlib Subroutines
+- `even?` pops the top word on the stack and pushes a `1` if it is even and a `0` otherwise.
+- `odd?` pops the top word on the stack and pushes a `1` if it is odd and a `0` otherwise.
+
+### Buitin Macros
+- `:!inc` increments the word on top of the stack by `1`
+- `:!dinc` increments the double word on top of the stack by `1`
+- `:!->word` pops the top double word on the stack and returns only least significant word. I.e. `[0xaabb, 0xccdd, ->` becomes `[0xccdd, ->`
+- `:!->dword` pops the top word on the stack and adds `0` as the most significant word. I.e. `[0xccdd, ->` becomes `[0x0000, 0xccdd, ->`
+
 
