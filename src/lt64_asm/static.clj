@@ -107,13 +107,14 @@
   [instructions program-data]
   (if (empty? instructions)
     program-data
-    (let [{:keys [bytes labels counter]} program-data
+    (let [{:keys [bytes labels counter user-macros]} program-data
           instr (first instructions)
           instr-data (allocate instr)]
         (recur (rest instructions)
              {:bytes (concat (:bytes instr-data) bytes)
               :labels (sym/set-label (second instr) counter labels)
-              :counter (+ counter (:words instr-data))}))))
+              :counter (+ counter (:words instr-data))
+              :user-macros user-macros}))))
 
 (defn set-prog-start
   "Set the starting address to the current counter value of program-data

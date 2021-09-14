@@ -64,8 +64,7 @@
     :dprn
 
     :label end
-    :push 10
-    :prnch
+    :!prn-newline
     :halt
   )
 
@@ -84,4 +83,6 @@
     :ret)
 
   (include "stdlib" odd?)
+
+  (macro :!prn-newline :push 10 :prnch)
 )

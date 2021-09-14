@@ -77,8 +77,11 @@
   byte array."
   [file]
   (let [[static main & procs-and-includes] (files/lt64-program file)
-        procs (files/expand procs-and-includes)]
-    (->> initial-prog-data
+        [prs-and-ins program-data] (files/process-user-macros
+                                     procs-and-includes
+                                     initial-prog-data)
+        procs (files/expand prs-and-ins)]
+    (->> program-data
          (stat/process-static static)
          (prog/first-pass main procs)
          (prog/second-pass main procs)

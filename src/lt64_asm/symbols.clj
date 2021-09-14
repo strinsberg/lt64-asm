@@ -194,6 +194,11 @@
   [proc]
   (= (first proc) 'proc))
 
+(defn macro?
+  "Checks if a list is a subroutine directive of an lt64 assembly program."
+  [macro]
+  (= (first macro) 'macro))
+
 (defn label?
   "Checks if an op is a label op symbol"
   [op]
