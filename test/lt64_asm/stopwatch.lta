@@ -43,8 +43,7 @@
 
     :label finish-loop
     :rpop
-    :push 1
-    :add
+    :!inc
     :first
     :push N :load-lb
     :gt

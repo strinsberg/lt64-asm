@@ -156,6 +156,13 @@
    :fpush          0xff
    :invalid        0xff})
 
+;;; Builtin Macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def macro-map
+  {':!inc           [:push 1 :add]
+   ':!dinc          [:dpush 1 :add]
+   ':!->word        [:swap :pop]
+   ':!->dword       [:push 0 :swap]})
+
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-prog?
   "Checks if a list is a valid lt64 assembly program."
@@ -204,6 +211,10 @@
   (or (= op :push)
       (dpush-op? op)))
 
+(defn builtin-macro?
+  [op]
+  (contains? macro-map op))
+
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
   "Sets a label in a given label map with the given value.
@@ -234,6 +245,13 @@
     (throw (Exception.
              (str "Error: Invalid operation: " op)))))
 
+(defn get-macro-ops
+  [op]
+  (if-let [ops (get macro-map op)]
+    ops
+    (throw (Exception.
+             (str "Error: Not a macro: " op)))))
+
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
@@ -246,4 +264,12 @@
 
 (label? :label)
 (label? :push)
+
+(println :!jkls)
+(builtin-macro? :!inc)
+(builtin-macro? :!notamacro)
+
+(get-macro-ops :!inc)
+(get-macro-ops :!ffffinc)
+;
 ),

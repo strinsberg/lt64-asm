@@ -22,6 +22,11 @@
      :labels labels
      :counter (+ 3 counter)}
 
+    (sym/builtin-macro? (first ops))
+    {:ops (rest ops)
+     :labels labels
+     :counter (+ (count (sym/get-macro-ops (first ops))) counter)}
+
     :else
     {:ops (rest ops)
      :labels labels
@@ -135,6 +140,9 @@
 
       (sym/push-op? op)
       (recur (drop 2 ops) (replace-push (take 2 ops) program-data))
+
+      (sym/builtin-macro? op)
+      (recur (rest ops) (replace-ops (sym/get-macro-ops op) program-data))
 
       (keyword? op)
       (recur (rest ops) (replace-op op program-data))
@@ -276,5 +284,9 @@
              test-procs
              labelled-prog-data)
 
+(def test-ops-with-macro
+  '(:push 1 :!inc :pop))
+(replace-ops (:!inc sym/macro-map) test-prog-data)
+(replace-ops test-ops-with-macro test-prog-data)
 ;
 ),
