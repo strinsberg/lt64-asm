@@ -235,11 +235,15 @@ prefixes are to help prevent name clashes.
 
 Macos are a way to create a new operation that contains multiple elements. They
 allow a simpler syntax than subroutines and can improve readability and reduce
-typing. However, unlike subroutines macros are replaced by their bodies. This
-means that if they are longer than `3` elements their use will increase program
-size. This may be desireable in certain cases as they are much nicer to
-read and use compared to the call for a subroutine, but most often if a macro
-will be used a lot and is `4` or more elments long it should be a subroutine.
+typing. However, unlike subroutines macros are replaced by their bodies. A macro
+is best used to replace common blocks of standard operations and literal numbers
+or characters. If the contents are larger than `3` elements the block of operations
+may be a good candidate for replacing with a subroutine. The subroutine will
+decrease assembled program size at the cost of a small amount of indirection for the call.
+However, it may still be desireable to use a macro to replace a larger block of
+instructions as they are easier to read and for many tasks the instructions
+are going to be included in the final program anyway, so reducing the written
+program size even if it does not reduce assembled program size can be useful.
 
 There are various builtin macros that are designed to make up for missing
 operations in the VM or to make some common operations more readable and
