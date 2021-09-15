@@ -121,7 +121,6 @@ void read_string(WORD* mem, ADDRESS start, ADDRESS max) {
   while (atemp < max - 1) {
     char ch;
     scanf("%c", &ch);
-    fprintf(stderr, "%c", ch);
 
     if (ch == '\n') {
       if (first) {

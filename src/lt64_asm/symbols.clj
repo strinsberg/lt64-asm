@@ -130,8 +130,8 @@
    :readsp-unused   0x57
 
    ;;; Buffer and Chars
-   :bufload        0x58
-   :bufstore       0x59
+   :bufstore       0x58
+   :bufload        0x59
    :high           0x5a
    :low            0x5b
    :pack           0x5c

@@ -1,0 +1,91 @@
+(lt64-asm-prog
+  (static
+    (:char seen 256))  ;; store if we have seen a char in the string
+
+  (main
+    ;; Set loop counter and read string into buffer
+    :push 0
+    :readln
+    
+    ;; Loop through string
+    :label loop
+
+    ;; Load the packed chars at the loop counter
+    :first
+    :bufload
+
+    ;; Check to see if the chars will allow us to still see the changes
+    :push check-chars :call
+
+    ;; if 0 keep going, 1 means we can always see changes
+    :!pos?
+    :push end :branch
+
+    ;; increment and loop
+    :!inc
+    :push loop :jump
+    
+    ;; We can do it, print 1 and quit
+    :label end
+    :push 1
+    :wprn
+    :!prn-nl
+    :halt)
+
+  ;; Leaves 0 on the stack if the chars are ok. Leaves 1 if the string has
+  ;; finished.
+  (proc check-chars
+    :unpack :swap
+
+    ;; Check if first char is null
+    :first :!zero?
+    :push done-string :branch
+
+    ;; If the value has been seen finish or add it
+    :push already-seen? :call
+    :push done-bad :branch
+    :push set-seen :call
+
+    ;; Check if second char is null
+    :first :!zero?
+    :push done-string :branch
+
+    ;; If the second value has been seen finish or add it
+    :push already-seen? :call
+    :push done-bad :branch
+    :push set-seen :call
+
+    ;; We have not finished the string yet
+    :push 0 :ret
+
+    ;; We have seen a char twice so it is not possible, print 0 and finish
+    :label done-bad
+    :push 0 :wprn
+    :!prn-nl
+    :halt
+
+    ;; We are done processing the string
+    :label done-string
+    :push 1 :ret)
+
+  ;; Get the value of seen at the char on the stack and put it on top
+  ;; of the stack. Does not destroy the char.
+  (proc already-seen?
+    :first
+    :push seen
+    :add
+    :load-lb
+    :!pos?)
+
+  ;; Given a char on top of the stack set the value of seen for that
+  ;; char to 1. Destroys the char on the stack.
+  (proc set-seen
+    :push 1 :swap
+    :push seen
+    :add
+    :store-lb)
+
+  (macro :!zero? :push 0 :eq)
+  (macro :!pos? :push 0 :gt)
+  (macro :!prn-nl :push 10 :prnch)
+)
