@@ -134,8 +134,8 @@
    :bufload        0x59
    :high           0x5a
    :low            0x5b
-   :pack           0x5c
-   :unpack         0x5d
+   :unpack         0x5c
+   :pack           0x5d
 
    ;;; Memory
    :mem-to-buf     0x005e

@@ -1,4 +1,6 @@
 (lt64-asm-prog
+  ;; Magic trick on Kattis
+
   (static
     (:char seen 256))  ;; store if we have seen a char in the string
 
@@ -21,7 +23,8 @@
     :!pos?
     :push end :branch
 
-    ;; increment and loop
+    ;; pop packed char, increment, and loop
+    :pop
     :!inc
     :push loop :jump
     
@@ -35,7 +38,7 @@
   ;; Leaves 0 on the stack if the chars are ok. Leaves 1 if the string has
   ;; finished.
   (proc check-chars
-    :unpack :swap
+    :unpack
 
     ;; Check if first char is null
     :first :!zero?
@@ -66,6 +69,7 @@
 
     ;; We are done processing the string
     :label done-string
+    :pop
     :push 1 :ret)
 
   ;; Get the value of seen at the char on the stack and put it on top
@@ -75,7 +79,8 @@
     :push seen
     :add
     :load-lb
-    :!pos?)
+    :!pos?
+    :ret)
 
   ;; Given a char on top of the stack set the value of seen for that
   ;; char to 1. Destroys the char on the stack.
@@ -83,7 +88,8 @@
     :push 1 :swap
     :push seen
     :add
-    :store-lb)
+    :store-lb
+    :ret)
 
   (macro :!zero? :push 0 :eq)
   (macro :!pos? :push 0 :gt)
