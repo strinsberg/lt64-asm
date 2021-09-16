@@ -6,6 +6,7 @@
   (main
     ;; Read in the number of presses
     :wread
+    :!dropch  ; eat newline, some how only necessary for wread?
     :push N :store-lb
 
     ;; Get first number and set the current total time
