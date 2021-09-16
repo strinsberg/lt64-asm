@@ -90,8 +90,4 @@
     :add
     :store-lb
     :ret)
-
-  (macro :!zero? :push 0 :eq)
-  (macro :!pos? :push 0 :gt)
-  (macro :!prn-nl :push 10 :prnch)
 )

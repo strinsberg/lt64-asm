@@ -159,9 +159,22 @@
 ;;; Builtin Macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (def macro-map
   {':!inc           [:push 1 :add]
-   ':!dinc          [:dpush 1 :add]
+   ':!dinc          [:dpush 1 :dadd]
+   ':!dec           [:push 1 :sub]
+   ':!ddec          [:dpush 1 :dsub]
+
+   ':!zero?         [:push 0 :eq]
+   ':!dzero?        [:dpush 0 :deq]
+   ':!pos?          [:push 0 :gt]
+   ':!dpos?         [:dpush 0 :dgt]
+   ':!neg?          [:push 0 :lt]
+   ':!dneg?         [:dpush 0 :dlt]
+
    ':!->word        [:swap :pop]
-   ':!->dword       [:push 0 :swap]})
+   ':!->dword       [:push 0 :swap]
+   
+   ':!prn-nl        [:push 10 :prnch]
+   })
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-prog?
