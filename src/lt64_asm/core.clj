@@ -87,6 +87,19 @@
          (prog/second-pass main procs)
          setup-bytes)))
 
+(defn assemble-cfile
+  [infile outfile]
+  (try
+    (files/create-standalone-cfile
+      (assemble (files/get-program infile))
+      outfile)
+    (catch Exception e
+      (binding [*out* *err*]
+        (println)
+        (println "*** Assembly Failed ***")
+        (println (.getMessage e))))))
+
+
 ;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn -main
   "Process command line arguments and assemble the file given as the first
@@ -103,9 +116,8 @@
                  (println "\nRun with --help for usage and examples"))
       (:help options) (help-text summary)
       (empty? arguments) (println "Error: No input file given")
-      (:cfile options) (files/create-standalone-cfile
-                         (assemble (files/get-program (first arguments)))
-                         (:cfile options))
+      (:cfile options) (assemble-cfile (first arguments)
+                                       (:cfile options))
       :else (b/write-bytes (:output-path options)
                             (assemble (files/get-program (first arguments)))))))
 

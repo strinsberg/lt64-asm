@@ -1,6 +1,7 @@
 (ns lt64-asm.vm-test
   (:require [clojure.test :refer :all]
             [clojure.java.shell :refer [sh]]
+            [clojure.java.io :refer [file]]
             [lt64-asm.core :refer :all]))
 
 ;;; Helpers ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -14,13 +15,15 @@
   output of the program run on the input, but trimmed to remove trailing
   whitespace."
   [lta-file]
-  (-main lta-file "-c" "test.c")
-  (sh "gcc" "test.c" "-o" "test.out")
-  (fn [input]
-    (clojure.string/trim
-      (:out
-        (sh "./test.out"
-            :in (clojure.string/join "\n" input))))))
+  (-main lta-file "-c" "test.c"lta-file)
+  (if (not (.exists (file "test.c")))
+    (fn [_] "*** failed to assemble ***")
+    (if (= 0 (:exit (sh "gcc" "test.c" "-o" "test.out")))
+      (fn [input]
+        (clojure.string/trim
+          (:out (sh "./test.out"
+                    :in (clojure.string/join "\n" input)))))
+      (fn [_] "*** failed to compile ***"))))
 
 (defn clean-up
   "Remove the testing files created by setup."
@@ -77,4 +80,3 @@
 
 ;; RUN ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (run-tests 'lt64-asm.vm-test)
-
