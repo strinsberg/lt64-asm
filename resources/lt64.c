@@ -129,7 +129,7 @@ static inline WORDU string_length(WORD* mem, ADDRESS start) {
 
 /// ltio.c ///////////////////////////////////////////////////////////////////
 void display_range(WORD* mem, ADDRESS start, ADDRESS end, bool debug) {
-  if (debug && end - 8 >= start) {
+  if (debug && end - 8 > start) {
     start = end - 8; 
     fprintf(stderr, "... ");
   }
@@ -279,6 +279,10 @@ void display_op_name(OP_CODE op, FILE* stream) {
     case PRNLN: fprintf(stream, "PRNLN"); break;
     case PRNSP_unused: fprintf(stream, "PRNSP_unused"); break;
     case PRNMEM: fprintf(stream, "PRNMEM"); break;
+    case WREAD: fprintf(stream, "WREAD"); break;
+    case DREAD: fprintf(stream, "DREAD"); break;
+    case FREAD: fprintf(stream, "FREAD"); break;
+    case FREADSC: fprintf(stream, "FREADSC"); break;
     case READCH: fprintf(stream, "READCH"); break;
     case READ_unused: fprintf(stream, "READ_unused"); break;
     case READLN: fprintf(stream, "READLN"); break;
@@ -303,13 +307,14 @@ void display_op_name(OP_CODE op, FILE* stream) {
 void debug_info_display(WORD* data_stack, WORD* return_stack, ADDRESS dsp,
                         ADDRESS rsp, ADDRESS pc, WORD op) {
   // print stacks and pointers
-  fprintf(stderr, "Dstack: ");
+  fflush(stdout);
+  fprintf(stderr, "\nDstack: ");
   display_range(data_stack, 0x0001, dsp + 1, DEBUGGING);
   fprintf(stderr, "Rstack: ");
   display_range(return_stack, 0x0001, rsp + 1, DEBUGGING);
   fprintf(stderr, "PC: %hx (%hu), Next OP: ", pc, pc);
   display_op_name(op, stderr);
-  fprintf(stderr, "\n\n");
+  fprintf(stderr, "\n");
 }
 
 size_t debug_step(size_t steps) {
@@ -319,7 +324,8 @@ size_t debug_step(size_t steps) {
     char buffer[10];
     int size = 10;
 
-    fprintf(stderr, "*** Steps: ");
+    fflush(stdout);
+    fprintf(stderr, "***Step: ");
     if ( fgets(buffer, size, stdin) != NULL ) {
       return atoi(buffer);
     } else {
