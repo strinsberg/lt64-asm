@@ -85,7 +85,7 @@ static inline WORDU string_length(WORD* mem, ADDRESS start) {
 void display_range(WORD* mem, ADDRESS start, ADDRESS end, bool debug) {
   for (ADDRESS i = start; i < end; i++) {
     if (debug)
-      fprintf(stderr, "%04hx ", mem[i]);
+      fprintf(stderr, "%04hx(%hd) ", mem[i]);
     else
       printf("%04hx ", mem[i]);
   }
@@ -144,6 +144,16 @@ void read_string(WORD* mem, ADDRESS start, ADDRESS max) {
     }
   }
   mem[atemp + 1] = 0;
+}
+
+void debug_info_display(WORD* data_stack, WORD* return_stack, ADDRESS dsp,     
+                        ADDRESS rsp, ADDRESS pc, WORD op) {                    
+  fprintf(stderr, "Dstack: ");                                                 
+  display_range(data_stack, 0x0001, dsp + 1, DEBUGGING);                       
+  fprintf(stderr, "Rstack: ");                                                 
+  display_range(return_stack, 0x0001, rsp + 1, DEBUGGING);                     
+  fprintf(stderr, "OP: %hx (%hu)\nPC: %hx (%hu)\n\n",                          
+          op, op, pc, pc);                                                     
 }
 
 /// ltrun.c //////////////////////////////////////////////////////////////////
@@ -212,10 +222,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
   while (run) {
     // Print stack, op code, and pc before every execution
     if (DEBUGGING) {
-      fprintf(stderr, "Stack: ");
-      display_range(data_stack, 0x0001, dsp + 1, DEBUGGING);
-      fprintf(stderr, "OP: %hx (%hu)\nPC: %hx (%hu)\n\n",
-              memory[pc], memory[pc], pc, pc);
+      debug_info_display(data_stack, return_stack, dsp, rsp, pc, memory[pc]);
     }
 
     // Catch some common pointer/address errors

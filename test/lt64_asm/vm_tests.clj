@@ -9,7 +9,6 @@
 
 (defn setup
   "Assembler given file to a standalone .c file and compile it.
-
   Returns a function that takes a list of strings, where each string is
   a line of input for the program. When run this function returns the
   output of the program run on the input, but trimmed to remove trailing
@@ -33,16 +32,12 @@
 (defn str-range
   "Give a string of space separated numbers in the given range."
   [start end step]
-  (clojure.string/join
-    " "
-    (range start end step)))
+  (clojure.string/join " " (range start end step)))
 
 (defn str-range-nl
   "Returns a string of newline separated integers in the given range."
   [start end step]
-  (clojure.string/join
-    "\n"
-    (range start end step)))
+  (clojure.string/join "\n" (range start end step)))
 
 ;;; Kattis Problems ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (deftest coldputer

@@ -143,7 +143,7 @@
 (-main "test/lt64_asm/max_of_list.lta" "-c" "max.c")
 (-main "test/lt64_asm/stopwatch.lta" "-c" "stopwatch.c")
 (-main "test/lt64_asm/coldputer.lta" "-c" "coldputer.c")
-(-main "test/lt64_asm/magic-trick.lta" "-c" "magic-trick.c")
+(-main "test/lt64_asm/lta_programs/magic_trick.lta" "-c" "magic-trick.c")
 
 ;
 ),
