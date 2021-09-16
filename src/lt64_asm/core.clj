@@ -139,6 +139,7 @@
 
 (assemble test-prog)
 
+(-main "test/lt64_asm/lta_programs/coldputer.lta" "-c" "coldputer.c")
 (-main "test/lt64_asm/lta_programs/stopwatch.lta" "-c" "stopwatch.c")
 
 ;

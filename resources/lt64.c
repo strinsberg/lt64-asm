@@ -325,9 +325,9 @@ size_t debug_step(size_t steps) {
     int size = 10;
 
     fflush(stdout);
-    fprintf(stderr, "***Step: ");
+    fprintf(stderr, "\n***Step: ");
     if ( fgets(buffer, size, stdin) != NULL ) {
-      return atoi(buffer);
+      return strtol(buffer,NULL,10);
     } else {
       return 0;
     }
@@ -356,6 +356,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
   while (run) {
     // Print stack, op code, and pc before every execution
     if (DEBUGGING) {
+      debug_steps = debug_step(debug_steps);
       debug_info_display(data_stack, return_stack, dsp, rsp, pc, memory[pc] & 0xff);
     }
 
@@ -953,9 +954,6 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
         return EXIT_OP;
     }
     pc++;
-
-    if (DEBUGGING)
-      debug_steps = debug_step(debug_steps);
   }
 
   // When program is run for tests we print out the contents of the stack
