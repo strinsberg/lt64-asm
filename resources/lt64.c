@@ -83,15 +83,20 @@ static inline WORDU string_length(WORD* mem, ADDRESS start) {
 
 /// ltio.c ///////////////////////////////////////////////////////////////////
 void display_range(WORD* mem, ADDRESS start, ADDRESS end, bool debug) {
+  if (debug && end - 8 >= start) {
+    start = end - 8; 
+    fprintf(stderr, "... ");
+  }
+
   for (ADDRESS i = start; i < end; i++) {
     if (debug)
-      fprintf(stderr, "%04hx(%hd) ", mem[i]);
+      fprintf(stderr, "%hx(%hd) ", mem[i], mem[i]);
     else
       printf("%04hx ", mem[i]);
   }
 
   if (debug)
-    fprintf(stderr, "\n");
+    fprintf(stderr, "->\n");
   else
     printf("\n");
 }
@@ -146,14 +151,29 @@ void read_string(WORD* mem, ADDRESS start, ADDRESS max) {
   mem[atemp + 1] = 0;
 }
 
-void debug_info_display(WORD* data_stack, WORD* return_stack, ADDRESS dsp,     
-                        ADDRESS rsp, ADDRESS pc, WORD op) {                    
-  fprintf(stderr, "Dstack: ");                                                 
-  display_range(data_stack, 0x0001, dsp + 1, DEBUGGING);                       
-  fprintf(stderr, "Rstack: ");                                                 
-  display_range(return_stack, 0x0001, rsp + 1, DEBUGGING);                     
-  fprintf(stderr, "OP: %hx (%hu)\nPC: %hx (%hu)\n\n",                          
-          op, op, pc, pc);                                                     
+size_t debug_info_display(WORD* data_stack, WORD* return_stack, ADDRESS dsp,
+                        ADDRESS rsp, ADDRESS pc, WORD op, size_t skip) {
+  // print stacks and pointers
+  fprintf(stderr, "Dstack: ");
+  display_range(data_stack, 0x0001, dsp + 1, DEBUGGING);
+  fprintf(stderr, "Rstack: ");
+  display_range(return_stack, 0x0001, rsp + 1, DEBUGGING);
+  fprintf(stderr, "OP: %hx (%hu)\nPC: %hx (%hu)\n\n", op, op, pc, pc);
+
+  // deal with step
+  if (skip != 0) {
+    return skip - 1;
+  } else {
+    char buffer[10];
+    int size = 10;
+
+    fprintf(stderr, "*** Step: ");
+    if ( fgets(buffer, size, stdin) != NULL ) {
+      return atoi(buffer);
+    } else {
+      return 0;
+    }
+  }
 }
 
 /// ltrun.c //////////////////////////////////////////////////////////////////
@@ -219,10 +239,12 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
   
   // Run the program in memory
   bool run = true;
+  size_t debug_skip = 3;
   while (run) {
     // Print stack, op code, and pc before every execution
     if (DEBUGGING) {
-      debug_info_display(data_stack, return_stack, dsp, rsp, pc, memory[pc]);
+      debug_skip = debug_info_display(data_stack, return_stack, dsp, rsp, pc,
+                                      memory[pc], debug_skip);
     }
 
     // Catch some common pointer/address errors
