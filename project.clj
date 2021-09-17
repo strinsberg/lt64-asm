@@ -1,4 +1,4 @@
-(defproject lt64-asm "0.0.3-2"
+(defproject lt64-asm "0.0.3-3"
   :description "Assembler for the lieutenant-64 virtual machine"
   :url "https://github.com/strinsberg/lt64-asm"
   :dependencies [[org.clojure/clojure "1.10.1"]

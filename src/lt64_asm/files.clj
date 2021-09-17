@@ -86,7 +86,7 @@
                  (include %2 (:data %1))]
              (assoc %1
                     :data data
-                    :procs (concat procs (:procs %2))))
+                    :procs (concat procs (:procs %1))))
           {:data program-data :procs '()}
           includes))
 
@@ -152,5 +152,15 @@
 (process-user-macros test-procs {})
 
 (process-includes '((include "stdlib" odd?)) {:user-macros {}})
+
+(def test-file (get-program "../ltsp/ltsp.lta"))
+(def directives (map #(if (sym/include? %)
+                        (list (first %)
+                              (str "../ltsp/" (second %)))
+                        %)
+                     (rest (rest (rest test-file)))))
+(identity directives)
+
+(expand-all directives {:user-macros {}})
 ;
 ),
