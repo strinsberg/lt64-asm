@@ -2,32 +2,62 @@
 
 Assembler for the [lieutenant-64](https://github.com/strinsberg/lieutenant-64) virtual machine.
 
-**NOTE**: Currently there are no formal tests. All functions have been tested in the REPL with code in a comment block at the end of each module file. This goes a long way, but I am not sure it can guarantee there are not still a few significant errors. There is also a test program and subroutine module in the test folders. These have been assembled and run on the current version of the VM and performed as expected. However, they only test a subset of the VM operations.
+**NOTE**: Currently there are no formal unit tests on assembler functions.
+All functions have been tested
+in the REPL with code in a comment block at the end of each module file.
+This goes a long way, but it can't guarantee there are no errors
+(not that tests can either). There are some test program that are used to test
+the assembler and the VM automatically, but they do not cover all operations.
+All macros and stdlib subroutines have been tested in a similar way.
 
 # Purpose
 
-The purpose of this assembler is to allow creation of programs for the lieutenant-64 virtual machine. Without it programs would have to be written in hex code in a hex editor or equivalent. Low level programming can be difficult enough without having to use hex code for programming.
+The purpose of this assembler is to allow creation of programs for the
+lieutenant-64 virtual machine. Without it programs would have to be written in
+hex code in a hex editor or equivalent. Low level programming can be difficult
+enough without having to use hex code for programming.
 
-The other application of this is as a target for other compilers or interpreters I might write for fun. The can produce lt64 assembly much easier than binary files or different hardware assembly languages. This allows me to experiment with low level programming and compilers without worrying about actual hardware. Though in the real world llvm is pretty intuitive and powerful.
+The other application of this is as a target for other compilers or
+interpreters I might write for fun. The can produce lt64 assembly much easier
+than binary files or different hardware assembly languages. This allows me to
+experiment with low level programming and compilers without worrying about
+actual hardware. Though in the real world llvm is pretty intuitive and
+powerful.
 
 If nothing else it is just Fun!
 
 # Usage
 
-The standalone jar for the program can be downloaded from the release page. This should work on any computer with a JVM. Note that the jar has a bit of a startup wait for the JVM. The actual compilation of small programs is fast, but the startup is slow.
+The standalone jar for the program can be downloaded from the release page.
+This should work on any computer with a JVM. Note that the jar has a bit of a
+startup wait for the JVM. The actual compilation of small programs is fast,
+but the startup is slow.
 
-The following command will assemble a correct lt64-asm file into a binary that can run on the VM. The `-o` flag gives the output name of the binary. If it is not provided the file will be named `a.ltb`.
+The following command will assemble a correct lt64-asm file into a binary that
+can run on the VM. The `-o` flag gives the output name of the binary.
+If it is not provided the file will be named `a.ltb`.
 ```
-$ java -jar lt64-asm.jar <program_file> -o <output_file>
+$ java -jar lt64-asm-<version>.jar <program_file> -o <output_file>
 ```
-The next command will assemble a correct lt64-asm file into a standalone C file that includes the VM and the assembled program. It can be compiled with a C compiler and run without directly calling the VM. Because it includes the whole VM this increases file size by a lot, but is useful in some situation, such as submiting a solution to a contest programming judge written in lt64-asm. If the `-c` flag is given without an argument the output file will be named `a.c`.
+The next command will assemble a correct lt64-asm file into a standalone C 
+file that includes the VM and the assembled program. It can be compiled with a
+C compiler and run without directly calling the VM. Because it includes the
+whole VM this increases file size by a lot, but is useful in some situation,
+such as submiting a solution to a contest programming judge written in
+lt64-asm. If the `-c` flag is given without an argument the output file will
+be named `a.c`.
 ```
-$ java -jar lt64-asm.jar <program_file> -c [<output_file>]
+$ java -jar lt64-asm-<version>.jar <program_file> -c [<output_file>]
 ```
 
 ### Errors
 
-The assembler does it's best to catch some errors, but these are mostly syntactic. For example if a value is given to a `:push` command that is invalid. This is an assembly language so there is not much chance of catching semantic errors. Also the low level nature of the VM means that mistakes may not produce intuitive output. The VM can be built in debug mode to help. See the lieutenant-64 README for more information on building or debugging.
+The assembler does it's best to catch some errors, but these are mostly
+syntactic. For example if a value is given to a `:push` command that is
+invalid. This is an assembly language so there is not much chance of catching
+semantic errors. Also the low level nature of the VM means that mistakes may not
+produce intuitive output. The VM can be built in debug mode to help. See the
+lieutenant-64 README for more information on building or debugging.
 
 # Assembly Programs
 
@@ -118,16 +148,16 @@ stack as an offset from **fmp** the operation needs a flag set in the top byte
 of the op code. Adding `-lb` assembles the op code to pass this flag so that
 it will access the address given directly. It can be thought of as **load-label**.
 Also, in the module example below `:second` is used for **sec** and for **fst**
-`:first` would be used.
+`:first` is be used.
 
 ### Label Naming Conventions
 
 Lables can be used to set labels for static data, program addresses, and
 procedure names. They can include almost any characters except for the
-following: `#, ', :, ;`. It is also not possible to start them with a number.
+following: `@, #, ', :, ;`. It is also not possible to start them with a number.
 ```
 Valid: hello mod/subroutine +-2-83!_
-Invalid: :hello help:me 'hello help;me 34apples
+Invalid: :hello @help:me 'hello help;me 34apples
 ```
 
 ### Program Organization
@@ -155,8 +185,9 @@ referenced by any other part of the program. Labels do not have to be declared
 before they are accessed. The assembler does a pass to resolve all existing
 labels before replacing their uses with addresses.
 
-After the main there are avariable number of optional `(proc)` and `(include)`
-lists. The subroutine `(proc)` element takes as it's first argument a label
+After the main there are avariable number of optional `(proc)`, `(include)`,
+and `(macro)` lists. Macros and subroutines are discussed in more detail below.
+The subroutine `(proc)` element takes as it's first argument a label
 name and then is filled with the instructions to execute. It can be run
 from `(main)` or anther subroutine by first pushing the label
 `:push subroutine-label` followed by `:call`. Subroutines do not automatically
@@ -281,7 +312,17 @@ only to replace small collections of operations these limitations are intentiona
 ### Buitin Macros
 - `:!inc` increments the word on top of the stack by `1`
 - `:!dinc` increments the double word on top of the stack by `1`
+- `:!dec` decrements the word on top of the stack by `1`
+- `:!ddec` decrements the double word on top of the stack by `1`
+- `:!zero?` pops the top word and pushes a `1` if the word was `0`, otherwise pushes `0`
+- `:!dzero?` pops the top double word and pushes a `1` if the word was `0`, otherwise pushes `0`. Result is a double word as well.
+- `:!pos?` pops the top word and pushes a `1` if the word was positive, otherwise pushes `0`
+- `:!dpos?` pops the top double word and pushes a `1` if the word was positive, otherwise pushes `0`. Result is a double word as well.
+- `:!neg?` pops the top word and pushes a `1` if the word was negative, otherwise pushes `0`
+- `:!dneg?` pops the top double word and pushes a `1` if the word was negative, otherwise pushes `0`. Result is a double word as well.
 - `:!->word` pops the top double word on the stack and returns only least significant word. I.e. `[0xaabb, 0xccdd, ->` becomes `[0xccdd, ->`
 - `:!->dword` pops the top word on the stack and adds `0` as the most significant word. I.e. `[0xccdd, ->` becomes `[0x0000, 0xccdd, ->`
+- `:!prn-nl` prints a newline character to stdout
+- `:!eatch` reads and discards the next character. Waits for a char to be entered if stdin is empty
 
 
