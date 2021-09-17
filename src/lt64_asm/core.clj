@@ -48,7 +48,8 @@
   (let [words (b/initial-words)]
     {:bytes words
      :counter (count words)
-     :labels {}}))
+     :labels {}
+     :user-macros {}}))
 
 (defn setup-bytes
   "Given program data returns the bytes as a byte array in the correct order
@@ -77,11 +78,9 @@
   byte array."
   [file]
   (let [[static main & procs-and-includes] (files/lt64-program file)
-        [prs-and-ins program-data] (files/process-user-macros
-                                     procs-and-includes
-                                     initial-prog-data)
-        procs (files/expand prs-and-ins)]
-    (->> program-data
+        {:keys [procs data]} (files/expand-all procs-and-includes
+                                               initial-prog-data)]
+    (->> data
          (stat/process-static static)
          (prog/first-pass main procs)
          (prog/second-pass main procs)
