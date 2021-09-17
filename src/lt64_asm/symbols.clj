@@ -130,12 +130,12 @@
    :readsp-unused   0x57
 
    ;;; Buffer and Chars
-   :bufload        0x58
-   :bufstore       0x59
+   :bufstore       0x58
+   :bufload        0x59
    :high           0x5a
    :low            0x5b
-   :pack           0x5c
-   :unpack         0x5d
+   :unpack         0x5c
+   :pack           0x5d
 
    ;;; Memory
    :mem-to-buf     0x005e
@@ -155,6 +155,27 @@
    ;; Pseudo ops that will be replaced or signal an error
    :fpush          0xff
    :invalid        0xff})
+
+;;; Builtin Macros ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(def macro-map
+  {:!inc           [:push 1 :add]
+   :!dinc          [:dpush 1 :dadd]
+   :!dec           [:push 1 :sub]
+   :!ddec          [:dpush 1 :dsub]
+
+   :!zero?         [:push 0 :eq]
+   :!dzero?        [:dpush 0 :deq]
+   :!pos?          [:push 0 :gt]
+   :!dpos?         [:dpush 0 :dgt]
+   :!neg?          [:push 0 :lt]
+   :!dneg?         [:dpush 0 :dlt]
+
+   :!->word        [:swap :pop]
+   :!->dword       [:push 0 :swap]
+   
+   :!prn-nl        [:push 10 :prnch]
+   :!eat-ch        [:readch :pop]
+   })
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn lt64-prog?
@@ -187,6 +208,11 @@
   [proc]
   (= (first proc) 'proc))
 
+(defn macro?
+  "Checks if a list is a subroutine directive of an lt64 assembly program."
+  [macro]
+  (= (first macro) 'macro))
+
 (defn label?
   "Checks if an op is a label op symbol"
   [op]
@@ -203,6 +229,10 @@
   [op]
   (or (= op :push)
       (dpush-op? op)))
+
+(defn builtin-macro?
+  [op]
+  (contains? macro-map op))
 
 ;; Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn set-label
@@ -234,6 +264,13 @@
     (throw (Exception.
              (str "Error: Invalid operation: " op)))))
 
+(defn get-macro-ops
+  [op]
+  (if-let [ops (get macro-map op)]
+    ops
+    (throw (Exception.
+             (str "Error: Not a macro: " op)))))
+
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
@@ -246,4 +283,12 @@
 
 (label? :label)
 (label? :push)
+
+(println :!jkls)
+(builtin-macro? :!inc)
+(builtin-macro? :!notamacro)
+
+(get-macro-ops :!inc)
+(get-macro-ops :!ffffinc)
+;
 ),

@@ -2,32 +2,62 @@
 
 Assembler for the [lieutenant-64](https://github.com/strinsberg/lieutenant-64) virtual machine.
 
-**NOTE**: Currently there are no formal tests. All functions have been tested in the REPL with code in a comment block at the end of each module file. This goes a long way, but I am not sure it can guarantee there are not still a few significant errors. There is also a test program and subroutine module in the test folders. These have been assembled and run on the current version of the VM and performed as expected. However, they only test a subset of the VM operations.
+**NOTE**: Currently there are no formal unit tests on assembler functions.
+All functions have been tested
+in the REPL with code in a comment block at the end of each module file.
+This goes a long way, but it can't guarantee there are no errors
+(not that tests can either). There are some test program that are used to test
+the assembler and the VM automatically, but they do not cover all operations.
+All macros and stdlib subroutines have been tested in a similar way.
 
 # Purpose
 
-The purpose of this assembler is to allow creation of programs for the lieutenant-64 virtual machine. Without it programs would have to be written in hex code in a hex editor or equivalent. Low level programming can be difficult enough without having to use hex code for programming.
+The purpose of this assembler is to allow creation of programs for the
+lieutenant-64 virtual machine. Without it programs would have to be written in
+hex code in a hex editor or equivalent. Low level programming can be difficult
+enough without having to use hex code for programming.
 
-The other application of this is as a target for other compilers or interpreters I might write for fun. The can produce lt64 assembly much easier than binary files or different hardware assembly languages. This allows me to experiment with low level programming and compilers without worrying about actual hardware. Though in the real world llvm is pretty intuitive and powerful.
+The other application of this is as a target for other compilers or
+interpreters I might write for fun. The can produce lt64 assembly much easier
+than binary files or different hardware assembly languages. This allows me to
+experiment with low level programming and compilers without worrying about
+actual hardware. Though in the real world llvm is pretty intuitive and
+powerful.
 
 If nothing else it is just Fun!
 
 # Usage
 
-The standalone jar for the program can be downloaded from the release page. This should work on any computer with a JVM. Note that the jar has a bit of a startup wait for the JVM. The actual compilation of small programs is fast, but the startup is slow.
+The standalone jar for the program can be downloaded from the release page.
+This should work on any computer with a JVM. Note that the jar has a bit of a
+startup wait for the JVM. The actual compilation of small programs is fast,
+but the startup is slow.
 
-The following command will assemble a correct lt64-asm file into a binary that can run on the VM. The `-o` flag gives the output name of the binary. If it is not provided the file will be named `a.ltb`.
+The following command will assemble a correct lt64-asm file into a binary that
+can run on the VM. The `-o` flag gives the output name of the binary.
+If it is not provided the file will be named `a.ltb`.
 ```
-$ java -jar lt64-asm.jar <program_file> -o <output_file>
+$ java -jar lt64-asm-<version>.jar <program_file> -o <output_file>
 ```
-The next command will assemble a correct lt64-asm file into a standalone C file that includes the VM and the assembled program. It can be compiled with a C compiler and run without directly calling the VM. Because it includes the whole VM this increases file size by a lot, but is useful in some situation, such as submiting a solution to a contest programming judge written in lt64-asm. If the `-c` flag is given without an argument the output file will be named `a.c`.
+The next command will assemble a correct lt64-asm file into a standalone C 
+file that includes the VM and the assembled program. It can be compiled with a
+C compiler and run without directly calling the VM. Because it includes the
+whole VM this increases file size by a lot, but is useful in some situation,
+such as submiting a solution to a contest programming judge written in
+lt64-asm. If the `-c` flag is given without an argument the output file will
+be named `a.c`.
 ```
-$ java -jar lt64-asm.jar <program_file> -c [<output_file>]
+$ java -jar lt64-asm-<version>.jar <program_file> -c [<output_file>]
 ```
 
 ### Errors
 
-The assembler does it's best to catch some errors, but these are mostly syntactic. For example if a value is given to a `:push` command that is invalid. This is an assembly language so there is not much chance of catching semantic errors. Also the low level nature of the VM means that mistakes may not produce intuitive output. The VM can be built in debug mode to help. See the lieutenant-64 README for more information on building or debugging.
+The assembler does it's best to catch some errors, but these are mostly
+syntactic. For example if a value is given to a `:push` command that is
+invalid. This is an assembly language so there is not much chance of catching
+semantic errors. Also the low level nature of the VM means that mistakes may not
+produce intuitive output. The VM can be built in debug mode to help. See the
+lieutenant-64 README for more information on building or debugging.
 
 # Assembly Programs
 
@@ -118,7 +148,17 @@ stack as an offset from **fmp** the operation needs a flag set in the top byte
 of the op code. Adding `-lb` assembles the op code to pass this flag so that
 it will access the address given directly. It can be thought of as **load-label**.
 Also, in the module example below `:second` is used for **sec** and for **fst**
-`:first` would be used.
+`:first` is be used.
+
+### Label Naming Conventions
+
+Lables can be used to set labels for static data, program addresses, and
+procedure names. They can include almost any characters except for the
+following: `@, #, ', :, ;`. It is also not possible to start them with a number.
+```
+Valid: hello mod/subroutine +-2-83!_
+Invalid: :hello @help:me 'hello help;me 34apples
+```
 
 ### Program Organization
 
@@ -145,8 +185,9 @@ referenced by any other part of the program. Labels do not have to be declared
 before they are accessed. The assembler does a pass to resolve all existing
 labels before replacing their uses with addresses.
 
-After the main there are avariable number of optional `(proc)` and `(include)`
-lists. The subroutine `(proc)` element takes as it's first argument a label
+After the main there are avariable number of optional `(proc)`, `(include)`,
+and `(macro)` lists. Macros and subroutines are discussed in more detail below.
+The subroutine `(proc)` element takes as it's first argument a label
 name and then is filled with the instructions to execute. It can be run
 from `(main)` or anther subroutine by first pushing the label
 `:push subroutine-label` followed by `:call`. Subroutines do not automatically
@@ -182,14 +223,36 @@ included in the above program example.
     :ret))
 ```
 
-### Standard Library
+# Subroutines and Macros
 
-Instead of adding pseudo instructions I decided to add a collection of
-standard library procedures that can be included into any program. Currently,
-these only include `even?` and `odd?` to test it out. Both take a word from
-the top of the stack and put a `1` or `0` as the result.
+## User Defined Subroutines
 
-To include these procedures one can either include the whole stdlib
+As mentioned above it is possible to define subroutines in a program or a module.
+These subroutines can be called by pushing their name and using the **call** op.
+```
+:push sub-name :call
+```
+Any sbroutine definition **must** include `:ret` to ensure it returns to the next
+instruction after the call.
+
+Subroutine names should be plain-text like other labels and should not be started
+with a colon `:`. Colons are reserved for the beginning of operations only.
+
+The use of these subroutines is to allow larger groups of instructions to be
+collected and reused. They can include labels and calls to other
+other subroutines. Pretty much anything that can be done in the main section
+can also be done in a subroutine definition.
+
+The main problem with subroutines is that they are not efficient to replace
+small groups of instructions. The subroutine call takes `3` instructions and
+another one for the return. This means replacing `3` or fewer elements
+(instructions and literals) will add to the program length and add some extra
+indirection. Subroutine calls are very cheap because no register saving or
+argument passing is needed, but are still not ideal for really small replacements.
+For small replacements macros can be used.
+
+A collection of standard library subroutines exists that can be included into
+any program. To include these procedures one can either include the whole stdlib
 `(include "stdlib")` or give names of the subroutines to include
 `(include "stdlib" odd? even?)`. If names that are not in the stdlib are given
 an error will be thrown.
@@ -198,4 +261,68 @@ When referencing standard library labels it is necessary to prefix them with
 `std/`. For example `:push std/odd? :call`. This prefix should not be added to
 the include list, but this is how they are labeled in the stdlib module. The
 prefixes are to help prevent name clashes.
+
+## Macros
+
+Macos are a way to create a new operation that contains multiple elements. They
+allow a simpler syntax than subroutines and can improve readability and reduce
+typing. However, unlike subroutines macros are replaced by their bodies. A macro
+is best used to replace common blocks of standard operations and literal numbers
+or characters. If the contents are larger than `3` elements the block of operations
+may be a good candidate for replacing with a subroutine. The subroutine will
+decrease assembled program size at the cost of a small amount of indirection for the call.
+However, it may still be desireable to use a macro to replace a larger block of
+instructions as they are easier to read and for many tasks the instructions
+are going to be included in the final program anyway, so reducing the written
+program size even if it does not reduce assembled program size can be useful.
+
+There are various builtin macros that are designed to make up for missing
+operations in the VM or to make some common operations more readable and
+reduce typing time.
+
+Macros are expected to be named like operations, but with a `!` following the
+colon. I.e. `:!inc`. This is how all builin macros will be named and should
+be followed by user macros. Similar to subroutines, it is desirable in modules
+that macros are named with the module name before the macro name.
+I.e. `:!my-mod/macro`. This is not enforced, but is good practice to avoid
+naming clashes. It should also be noted that user macros are always checked
+before builtin macros, and so declaring a user macro with the same name as a
+builtin macro will shadow it. This is by design and builtin macros do not have
+a prefix other than adding the `!`. The purpose of the `!` is so that it is
+clear that an operation is a macro and not a direct VM operation. As these are
+added by the assembler to make programs a little simpler and to make up for
+some simple but missing ops from the VM they are meant to look almost exactly
+like normal operations.
+
+Macros also have the disadvantage of not being able to contain labels or call
+subroutines. This is because of when in the assembly process their elements are
+processed and added to the byte code. The macros are stripped from the proc and
+include section before labels are processed, and then macro ops are assembled
+at the same time as other ops, after labels have been replaced. This prevents
+them from being used for complex sets of instructions, but as their purpose is
+only to replace small collections of operations these limitations are intentional.
+
+
+## Builtin Subroutines and Macros
+
+### Stdlib Subroutines
+- `even?` pops the top word on the stack and pushes a `1` if it is even and a `0` otherwise.
+- `odd?` pops the top word on the stack and pushes a `1` if it is odd and a `0` otherwise.
+
+### Buitin Macros
+- `:!inc` increments the word on top of the stack by `1`
+- `:!dinc` increments the double word on top of the stack by `1`
+- `:!dec` decrements the word on top of the stack by `1`
+- `:!ddec` decrements the double word on top of the stack by `1`
+- `:!zero?` pops the top word and pushes a `1` if the word was `0`, otherwise pushes `0`
+- `:!dzero?` pops the top double word and pushes a `1` if the word was `0`, otherwise pushes `0`. Result is a double word as well.
+- `:!pos?` pops the top word and pushes a `1` if the word was positive, otherwise pushes `0`
+- `:!dpos?` pops the top double word and pushes a `1` if the word was positive, otherwise pushes `0`. Result is a double word as well.
+- `:!neg?` pops the top word and pushes a `1` if the word was negative, otherwise pushes `0`
+- `:!dneg?` pops the top double word and pushes a `1` if the word was negative, otherwise pushes `0`. Result is a double word as well.
+- `:!->word` pops the top double word on the stack and returns only least significant word. I.e. `[0xaabb, 0xccdd, ->` becomes `[0xccdd, ->`
+- `:!->dword` pops the top word on the stack and adds `0` as the most significant word. I.e. `[0xccdd, ->` becomes `[0x0000, 0xccdd, ->`
+- `:!prn-nl` prints a newline character to stdout
+- `:!eatch` reads and discards the next character. Waits for a char to be entered if stdin is empty
+
 

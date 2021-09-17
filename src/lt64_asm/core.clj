@@ -77,12 +77,28 @@
   byte array."
   [file]
   (let [[static main & procs-and-includes] (files/lt64-program file)
-        procs (files/expand procs-and-includes)]
-    (->> initial-prog-data
+        [prs-and-ins program-data] (files/process-user-macros
+                                     procs-and-includes
+                                     initial-prog-data)
+        procs (files/expand prs-and-ins)]
+    (->> program-data
          (stat/process-static static)
          (prog/first-pass main procs)
          (prog/second-pass main procs)
          setup-bytes)))
+
+(defn assemble-cfile
+  [infile outfile]
+  (try
+    (files/create-standalone-cfile
+      (assemble (files/get-program infile))
+      outfile)
+    (catch Exception e
+      (binding [*out* *err*]
+        (println)
+        (println "*** Assembly Failed ***")
+        (println (.getMessage e))))))
+
 
 ;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn -main
@@ -100,9 +116,8 @@
                  (println "\nRun with --help for usage and examples"))
       (:help options) (help-text summary)
       (empty? arguments) (println "Error: No input file given")
-      (:cfile options) (files/create-standalone-cfile
-                         (assemble (files/get-program (first arguments)))
-                         (:cfile options))
+      (:cfile options) (assemble-cfile (first arguments)
+                                       (:cfile options))
       :else (b/write-bytes (:output-path options)
                             (assemble (files/get-program (first arguments)))))))
 
@@ -124,10 +139,8 @@
 
 (assemble test-prog)
 
-(-main "test/lt64_asm/max_of_list.lta" "-o" "max.ltb")
-(-main "test/lt64_asm/max_of_list.lta" "-c" "max.c")
-(-main "test/lt64_asm/stopwatch.lta" "-c" "stopwatch.c")
-(-main "test/lt64_asm/coldputer.lta" "-c" "coldputer.c")
+(-main "test/lt64_asm/lta_programs/coldputer.lta" "-c" "coldputer.c")
+(-main "test/lt64_asm/lta_programs/stopwatch.lta" "-c" "stopwatch.c")
 
 ;
 ),

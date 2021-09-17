@@ -88,6 +88,18 @@
                (str "Error: Stack overflow while expanding includes. "
                     "Most likely there are circular dependencies."))))))
 
+(defn process-user-macros
+  [procs-and-includes program-data]
+  (let [{:keys [macros procs]}
+        (group-by #(if (sym/macro? %) :macros :procs)
+                  procs-and-includes)]
+    [procs
+     (assoc program-data
+            :user-macros
+            (reduce #(assoc %1 (second %2) (rest (rest %2)))
+                    {}
+                    macros))]))
+
 ;;; C file creation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-prog
   "Given an assembled byte array for a program converts it to a string
@@ -122,5 +134,11 @@
 (include '(include "stdlib" even))
 (include '(include "stdlib"))
 
+(def test-procs
+  '((proc name :push :pop)
+    (macro :!my-op :push 1 :pop)
+    (include "somefile.lta")
+    (macro :!mop :dpush 22 :dpop)))
+(process-user-macros test-procs {})
 ;
 ),

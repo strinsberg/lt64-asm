@@ -10,22 +10,37 @@
   counter value or increments the counter according to the op.
   Returns a new map which updates labels, drops the op and any arguments,
   and updates the counter."
-  [{:keys [ops counter labels]}]
+  [{:keys [ops counter labels user-macros]}]
   (cond
     (sym/label? (first ops))
     {:ops (drop 2 ops)
      :labels (sym/set-label (second ops) counter labels)
-     :counter counter}
+     :counter counter
+     :user-macros user-macros}
 
     (sym/dpush-op? (first ops))
     {:ops (drop 2 ops)
      :labels labels
-     :counter (+ 3 counter)}
+     :counter (+ 3 counter)
+     :user-macros user-macros}
+
+    (contains? user-macros (first ops))
+    {:ops (rest ops)
+     :labels labels
+     :counter (+ (count (get user-macros (first ops))) counter)
+     :user-macros user-macros}
+
+    (sym/builtin-macro? (first ops))
+    {:ops (rest ops)
+     :labels labels
+     :counter (+ (count (sym/get-macro-ops (first ops))) counter)
+     :user-macros user-macros}
 
     :else
     {:ops (rest ops)
      :labels labels
-     :counter (inc counter)})) 
+     :counter (inc counter)
+     :user-macros user-macros})) 
 
 (defn get-op-labels
   "Given a list of ops and program data processes the ops for labels and
@@ -34,7 +49,8 @@
   [ops program-data]
   (loop [args {:ops ops
                :labels (:labels program-data)
-               :counter (:counter program-data)}]
+               :counter (:counter program-data)
+               :user-macros (:user-macros program-data)}]
     (if (empty? (:ops args))
       (assoc program-data
              :labels (:labels args)
@@ -136,6 +152,13 @@
       (sym/push-op? op)
       (recur (drop 2 ops) (replace-push (take 2 ops) program-data))
 
+      (contains? (:user-macros program-data) op)
+      (recur (rest ops) (replace-ops (get (:user-macros program-data) op)
+                                     program-data))
+
+      (sym/builtin-macro? op)
+      (recur (rest ops) (replace-ops (sym/get-macro-ops op) program-data))
+
       (keyword? op)
       (recur (rest ops) (replace-op op program-data))
 
@@ -222,7 +245,8 @@
 (def test-prog-data
   {:bytes '()
    :counter 11
-   :labels {'A 0 'i 10}})
+   :labels {'A 0 'i 10}
+   :user-macros {:!my-op [:push 1 :pop]}})
 
 ;;; First Pass Tests
 (get-label {:ops '(:label test-label :push 4)
@@ -276,5 +300,13 @@
              test-procs
              labelled-prog-data)
 
+(def test-ops-with-macro
+  '(:push 1 :!inc :pop))
+(replace-ops (:!inc sym/macro-map) test-prog-data)
+(replace-ops test-ops-with-macro test-prog-data)
+
+(def test-ops-with-user-macro
+  '(:push 1 :!my-op :pop))
+(replace-ops test-ops-with-user-macro test-prog-data)
 ;
 ),

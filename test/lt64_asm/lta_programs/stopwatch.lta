@@ -32,7 +32,7 @@
     :rgrab
     :push std/odd? :call
     :push started-only :branch
-    :push stopped-watch :call
+    :!watch-stopped
     :push finish-loop :jump
 
     ;; Increment loop counter and check if we should finish
@@ -43,8 +43,7 @@
 
     :label finish-loop
     :rpop
-    :push 1
-    :add
+    :!inc
     :first
     :push N :load-lb
     :gt
@@ -65,12 +64,13 @@
     :dprn
 
     :label end
-    :push 10
-    :prnch
+    :!prn-nl
     :halt
   )
 
-  (proc stopped-watch
+  (include "stdlib" odd?)
+
+  (macro :!watch-stopped
     ;; Get the time stopped and sub the started time from it
     :drot
     :dsecond
@@ -79,10 +79,5 @@
 
     ;; Move the total to the top and add it to the latest time run
     :drot
-    :dadd
-
-    ;; Stack is again [time-stopped, total-run, ->
-    :ret)
-
-  (include "stdlib" odd?)
+    :dadd)
 )

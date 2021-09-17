@@ -13,8 +13,7 @@
     :dread
     :dpush -1
     :dgt
-    :swap
-    :pop
+    :!->word
     :push not-neg :branch
     :dpush 1
     :dadd
@@ -30,8 +29,7 @@
     :dsecond
     :push n :dload-lb
     :dlt
-    :swap
-    :pop
+    :!->word
     :push loop :branch
 
     :dprn
