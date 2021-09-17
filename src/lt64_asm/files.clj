@@ -2,6 +2,7 @@
   (:require 
     [lt64-asm.symbols :as sym]
     [lt64-asm.stdlib :as stdlib]
+    [clojure.java.io :as jio]
     [clojure.edn :as edn]))
 
 ;; Load ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -122,7 +123,7 @@
   and program, but allows easier portability of the program."
   [program-bytes path]
   (spit path
-        (str (slurp "resources/lt64.c")
+        (str (slurp (jio/resource "lt64.c"))
              (wrap-prog program-bytes))))
 
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
