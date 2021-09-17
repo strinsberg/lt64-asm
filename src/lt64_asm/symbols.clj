@@ -174,7 +174,7 @@
    :!->dword       [:push 0 :swap]
    
    :!prn-nl        [:push 10 :prnch]
-   :!dropch        [:readch :pop]
+   :!eat-ch        [:readch :pop]
    })
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
