@@ -41,14 +41,22 @@
   Returns the file if it is valid otherwise throws an Exception."
   [file]
   (if (and (sym/lt64-mod? file)
-           (every? #(or (sym/proc? %) (sym/include? %))
+           (every? #(or (sym/proc? %) (sym/include? %) (sym/macro? %))
                    (rest file)))
     (rest file)
     (throw
       (Exception. "Error: Not a valid lt64-asm module"))))
 
 ;; Include and expand proc section ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(declare expand)
+(defn group-directives
+  [directives]
+  (let [{:keys [macros prs-incs]}
+        (group-by #(if (sym/macro? %) :macros :prs-incs)
+            directives)
+        {:keys [procs includes]}
+        (group-by #(if (sym/include? %) :includes :procs)
+            prs-incs)]
+  {:subroutines procs :macros macros :includes includes}))
 
 (defn include-stdlib
   "Include selected subroutines from the stdlib.
@@ -58,48 +66,55 @@
     (stdlib/include-all)
     (stdlib/include-procs procs)))
 
+(declare expand-all)
 (defn include
   "Loads and expands the file in an include directive.
   The expansion may load and expand submodules in the included file.
-  Throws if the file is cannot be processed or is not a valid lt64-asm module."
-  [[_ filename & procs]]
+  Throws if the file cannot be processed or is not a valid lt64-asm module."
+  [[_ filename & proc-names] program-data]
   (if (= filename "stdlib")
-    (include-stdlib procs)
-    (trampoline
-      expand
+    {:procs (include-stdlib proc-names) :data program-data}
+    (expand-all
       (->> filename
            get-program
-           lt64-module))))
+           lt64-module)
+      program-data)))
 
-(defn expand
-  "Given a list of subroutine and include directives returns them all as a
-  valid list of subroutine directives. This means loading and expanding all
-  includes into the subroutine directives they contain.
-  Throws an Exception for stack overflow errors. The function is mutually
-  recursive with include and if there are circular dependencies it will
-  overflow the stack."
-  [procs-and-includes]
+(defn process-includes
+  [includes program-data]
+  (reduce #(let [{:keys [procs data]}
+                 (include %2 (:data %1))]
+             (assoc %1
+                    :data data
+                    :procs (concat procs (:procs %1))))
+          {:data program-data :procs '()}
+          includes))
+
+(defn process-macros
+  [macros program-data]
+  (assoc program-data
+         :user-macros
+         (reduce #(if (contains? %1 (second %2))
+                    (throw (Exception.
+                             (str "Error: Macro has already been declared: "
+                                  (second %2))))
+                    (assoc %1 (second %2) (rest (rest %2))))
+                 (:user-macros program-data)
+                 macros)))
+
+(defn expand-all
+  [directives program-data]
   (try
-    (mapcat #(if (sym/include? %)
-               (trampoline include %)
-               (list %))
-            procs-and-includes)
+    (let [{:keys [macros subroutines includes]}
+          (group-directives directives)
+          {:keys [procs data]}
+          (process-includes includes program-data)]
+      {:procs (concat subroutines procs)
+       :data (process-macros macros data)})
     (catch StackOverflowError _
       (throw (Exception.
                (str "Error: Stack overflow while expanding includes. "
                     "Most likely there are circular dependencies."))))))
-
-(defn process-user-macros
-  [procs-and-includes program-data]
-  (let [{:keys [macros procs]}
-        (group-by #(if (sym/macro? %) :macros :procs)
-                  procs-and-includes)]
-    [procs
-     (assoc program-data
-            :user-macros
-            (reduce #(assoc %1 (second %2) (rest (rest %2)))
-                    {}
-                    macros))]))
 
 ;;; C file creation ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn wrap-prog
@@ -129,17 +144,23 @@
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
-(get-program "test/lt64_asm/max_of_list.lta")
-(include '(include "test/lt64_asm/max_proc.lta"))
-(include '(include "stdlib" even?))
-(include '(include "stdlib" even))
-(include '(include "stdlib"))
-
 (def test-procs
   '((proc name :push :pop)
     (macro :!my-op :push 1 :pop)
     (include "somefile.lta")
     (macro :!mop :dpush 22 :dpop)))
 (process-user-macros test-procs {})
+
+(process-includes '((include "stdlib" odd?)) {:user-macros {}})
+
+(def test-file (get-program "../ltsp/ltsp.lta"))
+(def directives (map #(if (sym/include? %)
+                        (list (first %)
+                              (str "../ltsp/" (second %)))
+                        %)
+                     (rest (rest (rest test-file)))))
+(identity directives)
+
+(expand-all directives {:user-macros {}})
 ;
 ),
