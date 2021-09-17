@@ -1,4 +1,4 @@
-(ns lt64-asm.macro-test
+(ns lt64-asm.builtin-test
   (:require [clojure.test :refer :all]
             [clojure.java.shell :refer [sh]]
             [clojure.java.io :refer [file]]
@@ -13,7 +13,7 @@
   be combined when possible."
   [& ops] 
   (create-standalone-cfile
-    (assemble ['lt64-asm-prog '(static) (cons 'main ops)])
+    (assemble ['lt64-asm-prog '(static) (cons 'main ops) '(include "stdlib")])
     "test.c")
   (if (not (.exists (file "test.c")))
     "*** failed to assemble ***"
@@ -73,6 +73,14 @@
                   :push 9 :dpush 2 :!->word :wprn :wprn :!prn-nl)))
   (clean-up))
 
-;; Run Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(run-tests 'lt64-asm.macro-test)
+;; STL tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(deftest odd-even
+  (is (= (join-nl 1 0 0 1)
+         (execute :push 9 :push 'std/odd? :call :wprn :!prn-nl
+                  :push 8 :push 'std/odd? :call :wprn :!prn-nl
+                  :push 9 :push 'std/even? :call :wprn :!prn-nl
+                  :push 8 :push 'std/even? :call :wprn)))
+  (clean-up))
 
+;; Run Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(run-tests 'lt64-asm.builtin-test)
