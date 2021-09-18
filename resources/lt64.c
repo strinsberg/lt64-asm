@@ -94,7 +94,7 @@ typedef enum op_codes { HALT=0,
   MEMCOPY, STRCOPY,  // 5F
   FMULT, FDIV, FMULTSC, FDIVSC,  // 63
 
-  PRNPK,
+ PRNPK, READCH_BF, STREQ, MEMEQ, // 67
 } OP_CODE;
 
 enum copy_codes { MEM_BUF = 0, BUF_MEM };
@@ -125,6 +125,14 @@ static inline WORDU string_length(WORD* mem, ADDRESS start) {
     atemp--;
   }
   return start - (atemp - 1);
+}
+
+inline static WORDU mem_equal(WORD* mem, ADDRESS first,
+                              ADDRESS second, ADDRESS length) {
+  for (ADDRESS i = 0; i < length; i++)
+    if (mem[first + i] != mem[second + i])
+      return 0;
+  return 1;
 }
 
 /// ltio.c ///////////////////////////////////////////////////////////////////
@@ -945,6 +953,53 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
                          / (double)get_dword(data_stack, dsp-1);
           dsp-=2;
           set_dword(data_stack, dsp-1, inter * dtemp);
+        }
+        break;
+
+      /// Other ///
+      case READCH_BF:
+        {
+          char ch;
+          scanf("%c", &ch);
+          atemp = data_stack[dsp--];
+          if (atemp % 2 == 0) {
+            memory[bfp + (atemp / 2)] = ch;
+          } else {
+            memory[bfp + (atemp / 2)] |= (ch << BYTE_SIZE);
+            memory[bfp + (atemp / 2) + 1] = 0;
+          }
+        }
+        break;
+      case STREQ:
+        {
+          atemp = data_stack[dsp--];
+          utemp = data_stack[dsp--];
+          size_t i = 0;
+
+          while (i + atemp < END_MEMORY && i + utemp < END_MEMORY) {
+            WORDU chs1, chs2;
+            chs1 = memory[atemp + i];
+            chs2 = memory[utemp + i];
+
+            if (chs1 != chs2) {
+              data_stack[++dsp] = 0;
+              break;
+            } else if (chs1 == 0  // whole thing is 0
+                       || (chs1 & 0x00ff) == 0     // first byte is 0
+                       || (chs1 & 0xff00) == 0) {  // second byte is 0
+              data_stack[++dsp] = 1;
+              break;
+            }
+            i++;
+          }
+        }
+        break;
+      case MEMEQ:
+        {
+          WORDU size = data_stack[dsp--];
+          WORDU first = data_stack[dsp--];
+          WORDU second = data_stack[dsp--];
+          data_stack[++dsp] = mem_equal(memory, first, second, size);
         }
         break;
 

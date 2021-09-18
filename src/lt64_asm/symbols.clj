@@ -151,6 +151,9 @@
 
    ;; Late additions
    :prnpk          0x64
+   :readch-buf     0x65
+   :streq          0x66
+   :memeq          0x67
 
    ;; Pseudo ops that will be replaced or signal an error
    :fpush          0xff
