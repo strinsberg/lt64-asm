@@ -2,12 +2,13 @@
   ;; Magic trick on Kattis
 
   (static
-    (:char seen 256))  ;; store if we have seen a char in the string
+    (:word seen 256))  ;; store if we have seen a char in the string
 
   (main
     ;; Set loop counter and read string into buffer
     :push 0
     :readln
+    :pop
     
     ;; Loop through string
     :label loop
@@ -20,7 +21,6 @@
     :push check-chars :call
 
     ;; if 0 keep going, 1 means we can always see changes
-    :!pos?
     :push end :branch
 
     ;; pop packed char, increment, and loop
@@ -85,6 +85,10 @@
   ;; Given a char on top of the stack set the value of seen for that
   ;; char to 1. Destroys the char on the stack.
   (proc set-seen
+    ;:first :prnch :!prn-nl
+    ;:first :push seen :add :load-lb :wprn :!prn-nl
+
+
     :push 1 :swap
     :push seen
     :add

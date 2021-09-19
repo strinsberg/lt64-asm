@@ -68,6 +68,8 @@
         "When we can tell for sure")
     (is (= "0" (execute ["icpc\n"]))
         "When we can't tell")
+    (is (= "0" (execute ["abcdefgabz\n"]))
+        "When we can't tell again")
     (is (= "1" (execute ["abcdefghijklmnopqrstuvwxyz\n"]))
         "When we can tell for sure")
   (clean-up)))
