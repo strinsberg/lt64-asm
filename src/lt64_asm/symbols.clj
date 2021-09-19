@@ -175,6 +175,9 @@
    :!neg?          [:push 0 :lt]
    :!dneg?         [:dpush 0 :dlt]
 
+   :!not           [:push 0 :eq]   ;; logical not, just checks for 0
+   :!dnot          [:dpush 0 :deq]
+
    :!->word        [:swap :pop]
    :!->dword       [:push 0 :swap]
    
