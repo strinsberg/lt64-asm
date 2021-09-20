@@ -188,9 +188,11 @@
    ;; to use top of return stack as a loop counter in simple looping situations
    :!init-rcount   [:push 0 :rpush]
    :!inc-rcount    [:rpop :push 1 :add :rpush]
+   :!dec-rcount    [:rpop :push 1 :sub :rpush]
    :!end-rcount    [:rpop :pop]
    :!eq-rcount     [:rgrab :eq]
    :!add-rcount    [:rgrab :add]
+   :!rcount        [:rgrab]
    })
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

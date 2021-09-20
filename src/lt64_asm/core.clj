@@ -22,9 +22,7 @@
          " to an executable that does not depend on the VM directly."
          " Of course this is because the VM is included in the C file.\n"
          "C file will be named with given path with a .c extension."
-         "I.e. -c some/path  ->  some/path.c\n"
-         "If no output path is given the file will be named a.c")
-    :default "a.c"]
+         "I.e. -c some/path  ->  some/path.c")]
    ["-h" "--help"]])
 
 (defn help-text
@@ -139,7 +137,7 @@
 (assemble test-prog)
 
 (-main "test/lt64_asm/lta_programs/coldputer.lta" "-c" "coldputer.c")
-(-main "test/lt64_asm/lta_programs/stopwatch.lta" "-c" "stopwatch.c")
+(-main "test/lt64_asm/lta_programs/stopwatch.lta" "-o" "stopwatch.ltb")
 
 ;
 ),
