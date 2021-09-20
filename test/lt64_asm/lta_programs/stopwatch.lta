@@ -26,6 +26,7 @@
 
     ;; For each press
     :label loop
+    :BREAK
     :dread
 
     ;; If counter is even we are stopping the watch
@@ -54,6 +55,7 @@
 
     ;; Print total time and halt
     :label finish-up
+    :BREAK
     :rpop
     :push std/odd? :call
     :push print-time :branch

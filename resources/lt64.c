@@ -96,6 +96,8 @@ typedef enum op_codes { HALT=0,
 
   PRNPK, READCH_BF, STREQ, MEMEQ, // 67
   IS_EOF, RESET_EOF, // 69
+
+  BRKPNT, // 6A
 } OP_CODE;
 
 enum copy_codes { MEM_BUF = 0, BUF_MEM };
@@ -327,21 +329,14 @@ void debug_info_display(WORD* data_stack, WORD* return_stack, ADDRESS dsp,
   fprintf(stderr, "\n");
 }
 
-size_t debug_step(size_t steps) {
-  if (steps > 0) {
-    return steps - 1;
-  } else {
-    char buffer[10];
-    int size = 10;
+bool debug_step() {
+  char *buffer = NULL;
+  size_t size;
 
-    fflush(stdout);
-    fprintf(stderr, "\n***Step: ");
-    if ( fgets(buffer, size, stdin) != NULL ) {
-      return strtol(buffer,NULL,10);
-    } else {
-      return 0;
-    }
-  }
+  fflush(stdout);
+  fprintf(stderr, "\n***Step? ");
+  ssize_t res = getline(&buffer, &size, stdin);
+  return res <= 1;
 }
 
 /// ltrun.c //////////////////////////////////////////////////////////////////
@@ -356,6 +351,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
 
   // conditions
   bool eof = false;
+  bool wait_for_break = false;
 
   // Declare some temporary "registers" for working with intermediate values
   ADDRESS atemp;
@@ -365,12 +361,15 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
   
   // Run the program in memory
   bool run = true;
-  size_t debug_steps = 3;
   while (run) {
     // Print stack, op code, and pc before every execution
-    if (DEBUGGING) {
-      debug_steps = debug_step(debug_steps);
+    if (DEBUGGING && !wait_for_break) {
       debug_info_display(data_stack, return_stack, dsp, rsp, pc, memory[pc] & 0xff);
+      bool step = debug_step();
+      if (!step) {
+        wait_for_break = true;
+        fprintf(stderr, "\n* Skipping To Break Point *\n\n");
+      }
     }
 
     // Catch some common pointer/address errors
@@ -404,6 +403,9 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
     switch (memory[pc] & 0xff) {
       case HALT:
         run = false;
+        break;
+      case BRKPNT:
+        wait_for_break = false;
         break;
 
       /// Stack Manipulation ///
@@ -815,6 +817,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
         } else {
           data_stack[++dsp] = temp;
         }
+        if (DEBUGGING) getchar();
         break;
       case DREAD:
         {
@@ -827,6 +830,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
           }
           dsp+=2;
         }
+        if (DEBUGGING) getchar();
         break;
       case FREAD:
         {
@@ -840,6 +844,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
           }
           dsp+=2;
         }
+        if (DEBUGGING) getchar();
         break;
       case FREADSC:
         {
@@ -860,6 +865,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
           }
           dsp+=2;
         }
+        if (DEBUGGING) getchar();
         break;
       case READCH:
         {
@@ -871,6 +877,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
             data_stack[++dsp] = (WORD)ch & 0xff;
           }
         }
+        if (DEBUGGING) getchar();
         break;
       case READLN:
         temp = read_string(memory, bfp, fmp);

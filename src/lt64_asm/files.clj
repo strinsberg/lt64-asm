@@ -94,6 +94,9 @@
   [macros program-data]
   (assoc program-data
          :user-macros
+         ;; TODO put a cond here and check if the macro is valid
+         ;; i.e. cannot have other macros or labels in it, name must
+         ;; be :! to start
          (reduce #(if (contains? %1 (second %2))
                     (throw (Exception.
                              (str "Error: Macro has already been declared: "

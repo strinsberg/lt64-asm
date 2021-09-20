@@ -156,6 +156,7 @@
    :memeq          0x67
    :eof?           0x68
    :reset-eof      0x69
+   :BREAK          0x6a
 
    ;; Pseudo ops that will be replaced or signal an error
    :fpush          0xff
@@ -183,6 +184,13 @@
    
    :!prn-nl        [:push 10 :prnch]
    :!eat-ch        [:readch :pop]
+
+   ;; to use top of return stack as a loop counter in simple looping situations
+   :!init-rcount   [:push 0 :rpush]
+   :!inc-rcount    [:rpop :push 1 :add :rpush]
+   :!end-rcount    [:rpop :pop]
+   :!eq-rcount     [:rgrab :eq]
+   :!add-rcount    [:rgrab :add]
    })
 
 ;;; Predicates ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
