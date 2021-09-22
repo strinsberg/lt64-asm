@@ -325,7 +325,7 @@ void debug_info_display(WORD* data_stack, WORD* return_stack, ADDRESS dsp,
   fprintf(stderr, "Rstack: ");
   display_range(return_stack, 0x0001, rsp + 1, DEBUGGING);
   fprintf(stderr, "PC: %hx (%hu), Next OP: ", pc, pc);
-  display_op_name(op, stderr);
+  display_op_name((OP_CODE)op, stderr);
   fprintf(stderr, "\n");
 }
 
@@ -1002,8 +1002,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
       /// Other ///
       case READCH_BF:
         {
-          char ch;
-          scanf("%c", &ch);
+          char ch = getchar();
           atemp = data_stack[dsp--];
           if (atemp % 2 == 0) {
             memory[bfp + (atemp / 2)] = ch;
