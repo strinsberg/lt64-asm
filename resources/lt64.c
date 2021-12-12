@@ -25,8 +25,8 @@ const char* TEST_FILE = "test.vm";
 
 // Sizes for the various memorys
 const ADDRESS END_MEMORY = 0xffff;
-const ADDRESS END_RETURN = 0x1000;
-const ADDRESS END_STACK = 0x1000;
+const ADDRESS END_RETURN = 0x2000;
+const ADDRESS END_STACK = 0x2000;
 
 const WORDU WORD_SIZE = 16;
 const WORDU BYTE_SIZE = 8;
@@ -98,6 +98,7 @@ typedef enum op_codes { HALT=0,
   IS_EOF, RESET_EOF, // 69
 
   BRKPNT, // 6A
+  OPEN, CLOSE, // 6C
 } OP_CODE;
 
 enum copy_codes { MEM_BUF = 0, BUF_MEM };
@@ -175,14 +176,14 @@ void print_string(WORD* mem, ADDRESS start, ADDRESS max) {
   }
 }
 
-WORD read_string(WORD* mem, ADDRESS start, ADDRESS max) {
+WORD read_string(WORD* mem, ADDRESS start, ADDRESS max, FILE* input) {
   ADDRESS atemp = start;
   bool first = true;
   WORDU two_chars = 0;
 
   while (atemp < max - 1) {
     char ch;
-    scanf("%c", &ch);
+    int res = fscanf(input, "%c", &ch);
 
     if (ch == '\n' || ch == EOF) {
       if (first) {
@@ -341,6 +342,9 @@ bool debug_step() {
 
 /// ltrun.c //////////////////////////////////////////////////////////////////
 size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack) {
+  // The input stream
+  FILE* input = stdin;
+
   // Declare and initialize memory pointer "registers"
   ADDRESS dsp, rsp, pc, bfp, fmp;
   dsp = 0;
@@ -400,6 +404,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
     // double words are declared as inline so they will be more efficient.
     // Larger functions for things like io operations are regular functions
     // because they are not really hurt by the function call.
+    //fprintf(stderr, "%04hx\n", pc);
     switch (memory[pc] & 0xff) {
       case HALT:
         run = false;
@@ -810,7 +815,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
 
       /// Reading ///
       case WREAD:
-        dtemp = scanf("%hd", &temp);
+        dtemp = fscanf(input, "%hd", &temp);
         if (dtemp == EOF) {
           eof = true;
           data_stack[++dsp] = 0;
@@ -821,7 +826,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
         break;
       case DREAD:
         {
-          int res = scanf("%d", &dtemp);
+          int res = fscanf(input, "%d", &dtemp);
           if (res == EOF) {
             eof = true;
             set_dword(data_stack, dsp + 1, 0);
@@ -835,7 +840,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
       case FREAD:
         {
           double x;
-          dtemp = scanf("%lf", &x);
+          dtemp = fscanf(input, "%lf", &x);
           if (dtemp == EOF) {
             eof = true;
             set_dword(data_stack, dsp + 1, 0);
@@ -856,7 +861,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
             dtemp = SCALES[ DEFAULT_SCALE ];
           }
           double x;
-          int res = scanf("%lf", &x);
+          int res = fscanf(input, "%lf", &x);
           if (res == EOF) {
             eof = true;
             set_dword(data_stack, dsp + 1, 0);
@@ -869,8 +874,9 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
         break;
       case READCH:
         {
-          char ch = getchar();
-          if (ch == EOF) {
+          char ch;
+          int res = fscanf(input, "%c", &ch);
+          if (res == EOF) {
             eof = true;
             data_stack[++dsp] = 0;
           } else {
@@ -880,7 +886,7 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
         if (DEBUGGING) getchar();
         break;
       case READLN:
-        temp = read_string(memory, bfp, fmp);
+        temp = read_string(memory, bfp, fmp, input);
         if (temp == -1) {
           eof = true;
         } else {
@@ -1002,7 +1008,8 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
       /// Other ///
       case READCH_BF:
         {
-          char ch = getchar();
+          char ch;
+          int res = fscanf(input, "%c", &ch);
           atemp = data_stack[dsp--];
           if (atemp % 2 == 0) {
             memory[bfp + (atemp / 2)] = ch;
@@ -1050,10 +1057,28 @@ size_t execute(WORD* memory, size_t length, WORD* data_stack, WORD* return_stack
       case RESET_EOF:
         eof = false;
         break;
+      case OPEN:
+        {
+          char filename[256];
+          memcpy(filename, memory + bfp, 256);
+          input = fopen(filename, "r");
+          if (input == NULL) {
+            fprintf(stderr, "Error: Could not open file: %s\n", memory + bfp);
+            input = stdin;
+          }
+        }
+        break;
+      case CLOSE:
+        if (input != stdin) {
+          fclose(input);
+          input = stdin;
+        }
+        break;
 
       /// BAD OP CODE ///
       default:
         fprintf(stderr, "Error: Unknown OP code: 0x%hx\n", memory[pc]);
+        debug_info_display(data_stack, return_stack, dsp, rsp, pc, memory[pc] & 0xff);
         return EXIT_OP;
     }
     pc++;
@@ -1111,6 +1136,9 @@ int main( int argc, char *argv[] ) {
     exit(EXIT_MEM);
   }
   set_program(memory, length);
+  if (argc >= 2) {
+    memcpy(memory + length, argv[1], strlen(argv[1]));
+  }
 
   // Run program
   size_t result = execute(memory, length, data_stack, return_stack);

@@ -23,6 +23,15 @@
          " Of course this is because the VM is included in the C file.\n"
          "C file will be named with given path with a .c extension."
          "I.e. -c some/path  ->  some/path.c")]
+   ["-m"
+    "--memdump-cfile OUTPUT_PATH"
+    (str "Take a memory dump file with a map containing the program length "
+         "and the numeric representation of each memory word and create "
+         "a standalone cfile for it. This will bundle the program the same "
+         "way that the -c option does, except it will not do any assembly "
+         "because the input file is already a representation of an assembled "
+         "program, but with the entire contents of memory rather than just "
+         "assembled program operations.")]
    ["-h" "--help"]])
 
 (defn help-text
@@ -96,7 +105,6 @@
         (println "*** Assembly Failed ***")
         (println (.getMessage e))))))
 
-
 ;;; Main ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn -main
   "Process command line arguments and assemble the file given as the first
@@ -111,12 +119,24 @@
       errors (do (println "Errors:")
                  (println (str "  " (clojure.string/join "\n  " errors)))
                  (println "\nRun with --help for usage and examples"))
-      (:help options) (help-text summary)
-      (empty? arguments) (println "Error: No input file given")
-      (:cfile options) (assemble-cfile (first arguments)
-                                       (:cfile options))
-      :else (b/write-bytes (:output-path options)
-                            (assemble (files/get-program (first arguments)))))))
+
+      (:help options)
+      (help-text summary)
+
+      (empty? arguments)
+      (println "Error: No input file given")
+
+      (:cfile options)
+      (assemble-cfile (first arguments)
+                      (:cfile options))
+
+      (:memdump-cfile options)
+      (files/create-cfile-from-memdump (first arguments)
+                                       (:memdump-cfile options))
+
+      :else
+      (b/write-bytes (:output-path options)
+                     (assemble (files/get-program (first arguments)))))))
 
 ;;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment

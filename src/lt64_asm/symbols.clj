@@ -157,6 +157,8 @@
    :eof?           0x68
    :reset-eof      0x69
    :BREAK          0x6a
+   :open           0x6b
+   :close          0x6c
 
    ;; Pseudo ops that will be replaced or signal an error
    :fpush          0xff

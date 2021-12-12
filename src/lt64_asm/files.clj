@@ -144,6 +144,29 @@
         (str (slurp (jio/resource "lt64.c"))
              (wrap-prog program-bytes))))
 
+(defn wrap-prog-memdump
+  "Given memory dump map wraps it in the C code necessary to add it to the
+  standalone VM C file. The difference from wrap-program is that it copies
+  all memory, and not just up to length. Also, the array is a WORD array,
+  because we are not using bytes, but words."
+  [memory-dump]
+  (str "size_t prog_length() { return " (:length memory-dump) ";  }\n"
+       "void set_program(WORD* mem, size_t length) {\n"
+       "// length is not used here, but is a required param\n"
+       "  WORD program[] = { "
+       (clojure.string/join ", " (:memory memory-dump))
+       " };\n"
+       "  memcpy(mem, program, " (* 2 (count  (:memory memory-dump))) ");\n"
+       "}\n"))
+
+(defn create-cfile-from-memdump
+  "Take a file for a memory dump and create a standalone cfile that contains
+  the memory from the dump."
+  [infile outfile]
+  (spit outfile
+        (str (slurp (jio/resource "lt64.c"))
+             (wrap-prog-memdump (edn/read-string (slurp infile))))))
+
 ;; REPL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment
 
@@ -166,4 +189,5 @@
 
 (expand-all directives {:user-macros {}})
 ;
+(create-cfile-from-memdump "../ltsp/mem.dump" "../ltsp/test.c")
 ),

@@ -11,7 +11,7 @@
   wrap around into unexpected values."
   [number]
   (try
-    (short number)
+    (unchecked-short number)
     (catch IllegalArgumentException e
       (throw (Exception. (str "Error: word literal out of range: " number))))))
 
@@ -22,7 +22,7 @@
   wrap around into unexpected values."
   [number]
   (try
-    (int number)
+    (unchecked-int number)
     (catch IllegalArgumentException e
       (throw (Exception. (str "Error: word literal out of range: " number))))))
 
